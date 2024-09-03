@@ -3,6 +3,8 @@ const jwt = require('jsonwebtoken');
 const User=require('../models/user')
 const db=require('../database/db')
 
+
+// register user
 const registerUser = async ({ name, email, password, role }) => {
     const transaction = await db.sequelize.transaction();
 
@@ -29,6 +31,7 @@ const registerUser = async ({ name, email, password, role }) => {
     }
 };
 
+// login user
 const loginUser = async ({ email, password }) => {
     const transaction = await db.sequelize.transaction();
 
@@ -57,7 +60,39 @@ const loginUser = async ({ email, password }) => {
     }
 };
 
+
+// update user profile
+const updateUserProfile = async (userId, updatedData) => {
+    const transaction = await db.sequelize.transaction(); 
+    try {
+        const user = await db.User.findByPk(userId, { transaction: transaction }); 
+        if (!user) {
+            throw new Error('User not found');
+        }
+       
+        if (updatedData.name) {
+            user.name = updatedData.name;
+        }
+        if (updatedData.phone_number) {
+            user.phone_number = updatedData.phone_number;
+        }
+        if (updatedData.role && ['entrepreneur', 'investor'].includes(updatedData.role)) {
+            user.role = updatedData.role;
+        }
+
+      
+        await user.save({ transaction: transaction });
+
+        await transaction.commit(); 
+        return user; 
+    } catch (error) {
+        await transaction.rollback(); 
+        throw new Error(error.message);
+    }
+};
+
 module.exports = {
     registerUser,
-    loginUser
+    loginUser,
+    updateUserProfile
 };
