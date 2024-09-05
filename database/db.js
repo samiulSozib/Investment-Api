@@ -39,6 +39,7 @@ db.sequelize.sync({ force: false })
     db.BestPerformingInvestor = require('../models/best_performing_investor')(sequelize, DataTypes);
     db.InvestmentOffer = require('../models/investment_offer')(sequelize, DataTypes);
     db.NewsBlog = require('../models/news_blog')(sequelize, DataTypes);
+    db.OTP=require('../models/otp')(sequelize,DataTypes)
 
 
     // User associations

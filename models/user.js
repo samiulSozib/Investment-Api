@@ -15,6 +15,10 @@ module.exports = (sequelize, DataTypes) => {
         role: {
             type: DataTypes.ENUM('admin', 'entrepreneur', 'investor'), 
             allowNull: false
+        },
+        is_varified:{
+            type:DataTypes.BOOLEAN,
+            defaultValue:false
         }
     }, {
         timestamps: true

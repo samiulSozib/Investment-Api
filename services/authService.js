@@ -1,7 +1,9 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const User=require('../models/user')
 const db=require('../database/db')
+const {generateOtp,isOtpExpired}=require('../util/otpFuntions')
+const {sendEmail}=require('../services/emailService')
+const {Op}=require('sequelize')
 
 
 // register user
@@ -9,22 +11,109 @@ const registerUser = async ({ name, email, password, role }) => {
     const transaction = await db.sequelize.transaction();
 
     try {
-        const existingUser = await db.User.findOne({ where: { email }, transaction });
-        if (existingUser) {
+        const existingUser = await db.User.findOne({
+            where: { email },
+            transaction
+        });
+
+        // Check if user exists and is verified
+        if (existingUser && existingUser.is_verified) {
             throw new Error('User already exists');
         }
 
+        // If user exists but is not verified, update the user details and hash the password
+        if (existingUser && !existingUser.is_verified) {
+            const hashedPassword = await bcrypt.hash(password, 10);
+
+            await db.User.update({
+                name,
+                password: hashedPassword,
+                role,
+                is_verified: 0 // Ensure the user is marked as not verified
+            }, {
+                where: { email },
+                transaction
+            });
+
+            const updatedUser = await db.User.findOne({
+                where: { email },
+                include: [{ model: db.Country }], // Assuming there's a relation with Country model
+                transaction
+            });
+
+            // Check OTP requests for the past 24 hours
+            const now = new Date();
+            const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000);
+
+            const otpCountToday = await db.OTP.count({
+                where: {
+                    user_id: updatedUser.id,
+                    createdAt: {
+                        [Op.gt]: twentyFourHoursAgo,
+                    },
+                },
+                transaction
+            });
+
+            if (otpCountToday >= 5) {
+                throw new Error('OTP request limit reached for today for this email');
+            }
+
+            // Generate and send new OTP
+            const created_otp = generateOtp();
+            await db.OTP.create({
+                user_id: updatedUser.id,
+                otp: created_otp,
+                daily_otp_count: otpCountToday + 1
+            }, { transaction });
+
+            await sendEmail(updatedUser.email, 'Verify Email', `Your OTP is ${created_otp}`);
+
+            await transaction.commit();
+            return updatedUser;
+        }
+
+        // If user doesn't exist, create a new user
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const user = await db.User.create({
+        const newUser = await db.User.create({
             name,
             email,
             password: hashedPassword,
-            role
+            role,
+            is_verified: 0 // Ensure the user is marked as not verified
         }, { transaction });
 
-        await transaction.commit(); 
-        return user;
+        // Check OTP requests for the past 24 hours
+        const now = new Date();
+        const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000);
+
+        const otpCountToday = await db.OTP.count({
+            where: {
+                user_id: newUser.id,
+                createdAt: {
+                    [Op.gt]: twentyFourHoursAgo,
+                },
+            },
+            transaction
+        });
+
+        if (otpCountToday >= 5) {
+            throw new Error('OTP request limit reached for today for this email');
+        }
+
+        // Generate and send new OTP
+        const created_otp = generateOtp();
+        await db.OTP.create({
+            user_id: newUser.id,
+            otp: created_otp,
+            daily_otp_count: 1
+        }, { transaction });
+
+        await sendEmail(newUser.email, 'Verify Email', `Your OTP is ${created_otp}`);
+
+        await transaction.commit();
+        return newUser;
     } catch (error) {
         await transaction.rollback();
         throw error;
@@ -56,6 +145,141 @@ const loginUser = async ({ email, password }) => {
         return { token, user };
     } catch (error) {
         await transaction.rollback(); 
+        throw error;
+    }
+};
+
+
+// verify user
+const verifyUser = async ({ user_id, otp }) => {
+    const transaction = await sequelize.transaction();
+
+    try {
+        const otpRecord = await db.OTP.findOne({
+            where: { user_id, otp },
+            order: [['createdAt', 'DESC']],
+            transaction,
+        });
+
+        if (!otpRecord) {
+            throw new Error('Invalid OTP');
+        }
+
+        if (isOtpExpired(otpRecord.createdAt)) {
+            throw new Error('OTP has expired');
+        }
+
+        await db.User.update(
+            { is_verified: 1 },
+            { where: { id: user_id }, transaction }
+        );
+
+        const user_data = await db.User.findByPk(user_id, {
+            include: [{ model: db.country }],
+            transaction,
+        });
+
+        const token = jwt.sign({ user_id: user_data.id }, process.env.JWT_SECRET, {
+            expiresIn: '1h',
+        });
+
+        await transaction.commit();
+        return { token, user: user_data };
+    } catch (error) {
+        await transaction.rollback();
+        throw error;
+    }
+};
+
+
+// resend otp
+const resendOTP = async ({ user_id }) => {
+    const transaction = await sequelize.transaction();
+
+    try {
+        const now = new Date();
+        const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000); // 24 hours ago
+
+        // Count OTPs sent in the last 24 hours
+        const otpCountToday = await db.OTP.count({
+            where: {
+                user_id: user_id,
+                createdAt: {
+                    [Op.gt]: twentyFourHoursAgo,
+                },
+            },
+            transaction,
+        });
+
+        // Check if the user has exceeded the OTP request limit
+        if (otpCountToday >= 5) {
+            throw new Error('OTP request limit reached for today');
+        }
+
+        // Fetch user data
+        const user_data = await db.User.findByPk(user_id, {
+            include: [{ model: db.country }],
+            transaction,
+        });
+
+        if (!user_data) {
+            throw new Error('User not found');
+        }
+
+        // Generate new OTP and save it to the database
+        const created_otp = generateOtp();
+        await db.OTP.create({
+            user_id: user_data.id,
+            otp: created_otp,
+            daily_otp_count: otpCountToday + 1,
+        }, { transaction });
+
+        // Send OTP via email
+        await sendEmail(user_data.email, 'Verify Email', `Your OTP is ${created_otp}`);
+
+        await transaction.commit();
+        return user_data;
+    } catch (error) {
+        await transaction.rollback();
+        throw error;
+    }
+};
+
+const verifyUserForForgotPassword = async ({ user_id, otp }) => {
+    const transaction = await sequelize.transaction();
+
+    try {
+        // Find the latest OTP record for the user
+        const otpRecord = await db.OTP.findOne({
+            where: { user_id: user_id, otp },
+            order: [['createdAt', 'DESC']],
+            transaction,
+        });
+
+        // If OTP record is not found
+        if (!otpRecord) {
+            throw new Error('Invalid OTP');
+        }
+
+        // Check if the OTP has expired
+        if (isOtpExpired(otpRecord.createdAt)) {
+            throw new Error('OTP has expired');
+        }
+
+        // Fetch user data
+        const user_data = await db.User.findByPk(user_id, {
+            include: [{ model: db.country }],
+            transaction,
+        });
+
+        if (!user_data) {
+            throw new Error('User not found');
+        }
+
+        await transaction.commit();
+        return user_data;
+    } catch (error) {
+        await transaction.rollback();
         throw error;
     }
 };
@@ -94,5 +318,8 @@ const updateUserProfile = async (userId, updatedData) => {
 module.exports = {
     registerUser,
     loginUser,
+    verifyUser,
+    resendOTP,
+    verifyUserForForgotPassword,
     updateUserProfile
 };
