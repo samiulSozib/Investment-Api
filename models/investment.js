@@ -24,7 +24,7 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.DATE
         },
         status: {
-            type: DataTypes.ENUM('active', 'terminated', 'completed')
+            type: DataTypes.ENUM('active','inactive', 'terminated', 'completed')
         }
     }, {
         timestamps: true

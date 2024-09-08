@@ -1,6 +1,7 @@
 const authRoute=require('./authRoute')
 const businessRoute=require('./businessRoute')
 const businessCategoryRoute=require('./businessCategoryRoute')
+const investmentRoute=require('./investmentRoute')
 
 const routes = [
     {
@@ -14,6 +15,10 @@ const routes = [
     {
         path:'/business-categories',
         handler:businessCategoryRoute
+    },
+    {
+        path:'/investments',
+        handler:investmentRoute
     },
     {
         path: '/',
