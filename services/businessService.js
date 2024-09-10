@@ -1,6 +1,6 @@
 // services/businessService.js
-const db = require('../models');
-const { sequelize } = require('../models');
+const db = require('../database/db');
+const { sequelize } = require('../database/db');
 const { Op } = require('sequelize');
 
 // Create Business
@@ -9,7 +9,7 @@ const createBusiness = async ({ name, category_id, min_investment, max_investmen
 
     try {
         // Create the new business
-        const newBusiness = await db.business.create({
+        const newBusiness = await db.Business.create({
             name,
             category_id,
             min_investment,
@@ -35,7 +35,7 @@ const updateBusiness = async (id, { name, category_id, min_investment, max_inves
 
     try {
         // Check if the business exists
-        const existingBusiness = await db.business.findByPk(id, { transaction });
+        const existingBusiness = await db.Business.findByPk(id, { transaction });
 
         if (!existingBusiness) {
             throw new Error('Business not found');
@@ -56,7 +56,7 @@ const updateBusiness = async (id, { name, category_id, min_investment, max_inves
             transaction
         });
 
-        const updatedBusiness = await db.business.findByPk(id, { transaction });
+        const updatedBusiness = await db.Business.findByPk(id, { transaction });
         await transaction.commit();
         return updatedBusiness;
     } catch (error) {
@@ -68,8 +68,8 @@ const updateBusiness = async (id, { name, category_id, min_investment, max_inves
 // Fetch Business By ID
 const getBusinessById = async (id) => {
     try {
-        const business = await db.business.findByPk(id, {
-            include: [{ model: db.business_category, as: 'category' }]
+        const business = await db.Business.findByPk(id, {
+            include: [{ model: db.BusinessCategory, as: 'category' }]
         });
 
         if (!business) {
@@ -85,8 +85,8 @@ const getBusinessById = async (id) => {
 // Fetch All Businesses
 const getAllBusinesses = async () => {
     try {
-        const businesses = await db.business.findAll({
-            include: [{ model: db.business_category, as: 'category' }]
+        const businesses = await db.Business.findAll({
+            include: [{ model: db.BusinessCategory, as: 'category' }]
         });
 
         return businesses;
@@ -101,14 +101,14 @@ const deleteBusiness = async (id) => {
 
     try {
         // Check if the business exists
-        const existingBusiness = await db.business.findByPk(id, { transaction });
+        const existingBusiness = await db.Business.findByPk(id, { transaction });
 
         if (!existingBusiness) {
             throw new Error('Business not found');
         }
 
         // Delete the business
-        await db.business.destroy({
+        await db.Business.destroy({
             where: { id },
             transaction
         });
@@ -123,9 +123,9 @@ const deleteBusiness = async (id) => {
 // Get Business By Category
 const getBusinessByCategory = async (category_id) => {
     try {
-        const businesses = await db.business.findAll({
+        const businesses = await db.Business.findAll({
             where: { category_id },
-            include: [{ model: db.business_category, as: 'category' }]
+            include: [{ model: db.BusinessCategory, as: 'category' }]
         });
 
         if (businesses.length === 0) {
@@ -141,9 +141,9 @@ const getBusinessByCategory = async (category_id) => {
 // Get businesses by user ID
 const getBusinessByUserId = async (user_id) => {
     try {
-        const businesses = await db.business.findAll({
+        const businesses = await db.Business.findAll({
             where: { user_id },
-            include: [{ model: db.business_category, as: 'category' }]
+            include: [{ model: db.BusinessCategory, as: 'category' }]
         });
 
         if (businesses.length === 0) {

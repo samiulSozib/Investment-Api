@@ -1,7 +1,7 @@
 const investmentService = require('../services/investmentService');
 
 // Create a new investment
-exports.createInvestment = async (req, res) => {
+const createInvestment = async (req, res) => {
     const { user_id, business_id, amount, investment_date, investment_period, expected_return } = req.body;
 
     try {
@@ -27,7 +27,7 @@ exports.createInvestment = async (req, res) => {
 };
 
 // Update an existing investment
-exports.updateInvestment = async (req, res) => {
+const updateInvestment = async (req, res) => {
     const investment_id = req.params.id;
     const { amount, investment_period, expected_return, status } = req.body;
 
@@ -52,7 +52,7 @@ exports.updateInvestment = async (req, res) => {
 };
 
 // Delete an investment
-exports.deleteInvestment = async (req, res) => {
+const deleteInvestment = async (req, res) => {
     const investment_id = req.params.id;
 
     try {
@@ -70,7 +70,7 @@ exports.deleteInvestment = async (req, res) => {
 };
 
 // Get all investments
-exports.getInvestments = async (req, res) => {
+const getInvestments = async (req, res) => {
     try {
         const investments = await investmentService.getInvestments();
         return res.status(200).json({
@@ -86,7 +86,7 @@ exports.getInvestments = async (req, res) => {
 };
 
 // Get investments by User ID
-exports.getInvestmentsByUserId = async (req, res) => {
+const getInvestmentsByUserId = async (req, res) => {
     const user_id = req.params.user_id;
 
     try {
@@ -104,7 +104,7 @@ exports.getInvestmentsByUserId = async (req, res) => {
 };
 
 // Get investments by Business ID
-exports.getInvestmentsByBusinessId = async (req, res) => {
+const getInvestmentsByBusinessId = async (req, res) => {
     const business_id = req.params.business_id;
 
     try {
@@ -120,3 +120,12 @@ exports.getInvestmentsByBusinessId = async (req, res) => {
         });
     }
 };
+
+module.exports={
+    createInvestment,
+    updateInvestment,
+    deleteInvestment,
+    getInvestments,
+    getInvestmentsByUserId,
+    getInvestmentsByBusinessId
+}

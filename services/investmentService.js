@@ -1,4 +1,4 @@
-const db = require('../models');
+const db = require('../database/db');
 const { Op } = require('sequelize');
 
 // Create a new investment

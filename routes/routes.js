@@ -2,6 +2,7 @@ const authRoute=require('./authRoute')
 const businessRoute=require('./businessRoute')
 const businessCategoryRoute=require('./businessCategoryRoute')
 const investmentRoute=require('./investmentRoute')
+const investmentRequestRoute=require('./investmentRequestRoute')
 
 const routes = [
     {
@@ -19,6 +20,10 @@ const routes = [
     {
         path:'/investments',
         handler:investmentRoute
+    },
+    {
+        path:'/investment-requests',
+        handler:investmentRequestRoute
     },
     {
         path: '/',

@@ -19,6 +19,6 @@ require('./database/db')
 setMiddlewares(app)
 setRoutes(app)
 
-app.listen(3000, () => {
+app.listen(1000, () => {
     console.log('server create success on port')
 })

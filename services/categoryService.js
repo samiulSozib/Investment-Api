@@ -1,13 +1,13 @@
 // services/categoryService.js
 
-const db = require('../models'); // Adjust the path based on your project structure
+const db = require('../database/db'); // Adjust the path based on your project structure
 
 // Create a new business category
 const createCategory = async ({ name, description }) => {
     const transaction = await db.sequelize.transaction();
     try {
         // Check if the category already exists
-        const existingCategory = await db.business_category.findOne({
+        const existingCategory = await db.BusinessCategory.findOne({
             where: { name },
             transaction,
         });
@@ -17,7 +17,7 @@ const createCategory = async ({ name, description }) => {
         }
 
         // Create a new category
-        const newCategory = await db.business_category.create(
+        const newCategory = await db.BusinessCategory.create(
             { name, description },
             { transaction }
         );
@@ -34,7 +34,7 @@ const createCategory = async ({ name, description }) => {
 const updateCategory = async (category_id, { name, description }) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const category = await db.business_category.findByPk(category_id, {
+        const category = await db.BusinessCategory.findByPk(category_id, {
             transaction,
         });
 
@@ -43,7 +43,7 @@ const updateCategory = async (category_id, { name, description }) => {
         }
 
         // Update the category
-        await db.business_category.update(
+        await db.BusinessCategory.update(
             { name, description },
             {
                 where: { id: category_id },
@@ -51,7 +51,7 @@ const updateCategory = async (category_id, { name, description }) => {
             }
         );
 
-        const updatedCategory = await db.business_category.findByPk(category_id, {
+        const updatedCategory = await db.BusinessCategory.findByPk(category_id, {
             transaction,
         });
 
@@ -67,7 +67,7 @@ const updateCategory = async (category_id, { name, description }) => {
 const deleteCategory = async (category_id) => {
     const transaction = await db.sequelize.transaction();
     try {
-        const category = await db.business_category.findByPk(category_id, {
+        const category = await db.BusinessCategory.findByPk(category_id, {
             transaction,
         });
 
@@ -75,7 +75,7 @@ const deleteCategory = async (category_id) => {
             throw new Error('Category not found');
         }
 
-        await db.business_category.destroy({
+        await db.BusinessCategory.destroy({
             where: { id: category_id },
             transaction,
         });
@@ -91,7 +91,7 @@ const deleteCategory = async (category_id) => {
 // Get all categories
 const getCategories = async () => {
     try {
-        const categories = await db.business_category.findAll();
+        const categories = await db.BusinessCategory.findAll();
         return categories;
     } catch (error) {
         throw error;
