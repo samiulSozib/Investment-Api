@@ -3,6 +3,9 @@ const businessRoute=require('./businessRoute')
 const businessCategoryRoute=require('./businessCategoryRoute')
 const investmentRoute=require('./investmentRoute')
 const investmentRequestRoute=require('./investmentRequestRoute')
+const investmentOfferRoute=require('./investmentOfferRoute')
+const contractRoute=require('./contractsRoute')
+const newsBlogRoute=require('./newsBlogRoute')
 
 const routes = [
     {
@@ -24,6 +27,18 @@ const routes = [
     {
         path:'/investment-requests',
         handler:investmentRequestRoute
+    },
+    {
+        path:'/investment-offers',
+        handler:investmentOfferRoute
+    },
+    {
+        path:'/contracts',
+        handler:contractRoute
+    },
+    {
+        path:'/news-blogs',
+        handler:newsBlogRoute
     },
     {
         path: '/',
