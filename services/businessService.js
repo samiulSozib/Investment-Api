@@ -42,7 +42,7 @@ const updateBusiness = async (id, { name, category_id, min_investment, max_inves
         }
 
         // Update business details
-        await db.business.update({
+        await db.Business.update({
             name,
             category_id,
             min_investment,
@@ -138,23 +138,7 @@ const getBusinessByCategory = async (category_id) => {
     }
 };
 
-// Get businesses by user ID
-const getBusinessByUserId = async (user_id) => {
-    try {
-        const businesses = await db.Business.findAll({
-            where: { user_id },
-            include: [{ model: db.BusinessCategory, as: 'category' }]
-        });
 
-        if (businesses.length === 0) {
-            throw new Error('No businesses found for this user');
-        }
-
-        return businesses;
-    } catch (error) {
-        throw error;
-    }
-};
 
 module.exports = {
     createBusiness,
@@ -162,6 +146,5 @@ module.exports = {
     getBusinessById,
     getAllBusinesses,
     deleteBusiness,
-    getBusinessByCategory,
-    getBusinessByUserId
+    getBusinessByCategory
 };

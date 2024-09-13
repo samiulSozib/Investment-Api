@@ -47,7 +47,7 @@ const updateInvestmentOffer = async (offer_id, { offered_amount, proposed_share,
         }
 
         // Update the offer details
-        await db.investment_offer.update(
+        await db.InvestmentOffer.update(
             { offered_amount, proposed_share, status },
             { where: { id: offer_id }, transaction }
         );

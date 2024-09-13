@@ -9,13 +9,13 @@ const createInvestmentRequest = async ({ user_id, business_name, description, re
 
     try {
         // Check if user exists
-        const user = await db.user.findByPk(user_id, { transaction });
+        const user = await db.User.findByPk(user_id, { transaction });
         if (!user) {
             throw new Error('User not found');
         }
 
         // Create the investment request
-        const newRequest = await db.investment_request.create({
+        const newRequest = await db.InvestmentRequest.create({
             user_id,
             business_name,
             description,
@@ -37,18 +37,18 @@ const updateInvestmentRequest = async (request_id, { business_name, description,
     const transaction = await db.sequelize.transaction();
 
     try {
-        const request = await db.investment_request.findByPk(request_id, { transaction });
+        const request = await db.InvestmentRequest.findByPk(request_id, { transaction });
         if (!request) {
             throw new Error('Investment request not found');
         }
 
         // Update the request details
-        await db.investment_request.update(
+        await db.InvestmentRequest.update(
             { business_name, description, requested_amount, proposed_share, status },
             { where: { id: request_id }, transaction }
         );
 
-        const updatedRequest = await db.investment_request.findByPk(request_id, { transaction });
+        const updatedRequest = await db.InvestmentRequest.findByPk(request_id, { transaction });
         await transaction.commit();
         return updatedRequest;
     } catch (error) {
@@ -62,13 +62,13 @@ const deleteInvestmentRequest = async (request_id) => {
     const transaction = await db.sequelize.transaction();
 
     try {
-        const request = await db.investment_request.findByPk(request_id, { transaction });
+        const request = await db.InvestmentRequest.findByPk(request_id, { transaction });
         if (!request) {
             throw new Error('Investment request not found');
         }
 
         // Delete the request
-        await db.investment_request.destroy({ where: { id: request_id }, transaction });
+        await db.InvestmentRequest.destroy({ where: { id: request_id }, transaction });
 
         await transaction.commit();
         return { message: 'Investment request deleted successfully' };
@@ -81,10 +81,10 @@ const deleteInvestmentRequest = async (request_id) => {
 // Get all investment requests
 const getInvestmentRequests = async () => {
     try {
-        const requests = await db.investment_request.findAll({
+        const requests = await db.InvestmentRequest.findAll({
             include: [
-                { model: db.user, as: 'user' },
-                { model: db.investment_offer, as: 'investmentOffers' },
+                { model: db.User, as: 'user' },
+                { model: db.InvestmentOffer, as: 'investmentOffers' },
             ],
         });
         return requests;
@@ -96,10 +96,10 @@ const getInvestmentRequests = async () => {
 // Get investment requests by User ID
 const getInvestmentRequestsByUserId = async (user_id) => {
     try {
-        const requests = await db.investment_request.findAll({
+        const requests = await db.InvestmentRequest.findAll({
             where: { user_id },
             include: [
-                { model: db.investment_offer, as: 'investmentOffers' },
+                { model: db.InvestmentOffer, as: 'investmentOffers' },
             ],
         });
 
@@ -116,10 +116,10 @@ const getInvestmentRequestsByUserId = async (user_id) => {
 // Get investment request by ID
 const getInvestmentRequestById = async (request_id) => {
     try {
-        const request = await db.investment_request.findByPk(request_id, {
+        const request = await db.InvestmentRequest.findByPk(request_id, {
             include: [
-                { model: db.user, as: 'user' },
-                { model: db.investment_offer, as: 'investmentOffers' },
+                { model: db.User, as: 'user' },
+                { model: db.InvestmentOffer, as: 'investmentOffers' },
             ],
         });
 

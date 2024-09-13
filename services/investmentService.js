@@ -7,19 +7,19 @@ const createInvestment = async ({ user_id, business_id, amount, investment_date,
 
     try {
         // Check if business exists
-        const business = await db.business.findByPk(business_id, { transaction });
+        const business = await db.Business.findByPk(business_id, { transaction });
         if (!business) {
             throw new Error('Business not found');
         }
 
         // Check if user exists
-        const user = await db.user.findByPk(user_id, { transaction });
+        const user = await db.User.findByPk(user_id, { transaction });
         if (!user) {
             throw new Error('User not found');
         }
 
         // Create the investment
-        const newInvestment = await db.investment.create({
+        const newInvestment = await db.Investment.create({
             user_id,
             business_id,
             amount,
@@ -42,18 +42,18 @@ const updateInvestment = async (investment_id, { amount, investment_period, expe
     const transaction = await db.sequelize.transaction();
 
     try {
-        const investment = await db.investment.findByPk(investment_id, { transaction });
+        const investment = await db.Investment.findByPk(investment_id, { transaction });
         if (!investment) {
             throw new Error('Investment not found');
         }
 
         // Update the investment details
-        await db.investment.update(
+        await db.Investment.update(
             { amount, investment_period, expected_return, status },
             { where: { id: investment_id }, transaction }
         );
 
-        const updatedInvestment = await db.investment.findByPk(investment_id, { transaction });
+        const updatedInvestment = await db.Investment.findByPk(investment_id, { transaction });
         await transaction.commit();
         return updatedInvestment;
     } catch (error) {
@@ -67,13 +67,13 @@ const deleteInvestment = async (investment_id) => {
     const transaction = await db.sequelize.transaction();
 
     try {
-        const investment = await db.investment.findByPk(investment_id, { transaction });
+        const investment = await db.Investment.findByPk(investment_id, { transaction });
         if (!investment) {
             throw new Error('Investment not found');
         }
 
         // Delete the investment
-        await db.investment.destroy({ where: { id: investment_id }, transaction });
+        await db.Investment.destroy({ where: { id: investment_id }, transaction });
 
         await transaction.commit();
         return { message: 'Investment deleted successfully' };
@@ -86,10 +86,10 @@ const deleteInvestment = async (investment_id) => {
 // Get all investments
 const getInvestments = async () => {
     try {
-        const investments = await db.investment.findAll({
+        const investments = await db.Investment.findAll({
             include: [
-                { model: db.user, as: 'user' },
-                { model: db.business, as: 'business' },
+                { model: db.User, as: 'user' },
+                { model: db.Business, as: 'business' },
             ],
         });
         return investments;
@@ -101,10 +101,10 @@ const getInvestments = async () => {
 // Get investments by User ID
 const getInvestmentsByUserId = async (user_id) => {
     try {
-        const investments = await db.investment.findAll({
+        const investments = await db.Investment.findAll({
             where: { user_id },
             include: [
-                { model: db.business, as: 'business' },
+                { model: db.Business, as: 'business' },
             ],
         });
 
@@ -121,10 +121,10 @@ const getInvestmentsByUserId = async (user_id) => {
 // Get investments by Business ID
 const getInvestmentsByBusinessId = async (business_id) => {
     try {
-        const investments = await db.investment.findAll({
+        const investments = await db.Investment.findAll({
             where: { business_id },
             include: [
-                { model: db.user, as: 'user' },
+                { model: db.User, as: 'user' },
             ],
         });
 

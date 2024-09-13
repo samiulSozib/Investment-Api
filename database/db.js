@@ -58,11 +58,11 @@ db.Business.hasMany(db.BusinessPerformance, { foreignKey: 'business_id', as: 'pe
 db.Business.hasOne(db.BestPerformingBusiness, { foreignKey: 'business_id', as: 'bestPerformance' });
 
 // InvestmentRequest associations
-db.InvestmentRequest.belongsTo(db.User, { foreignKey: 'user_id', as: 'requestingUser' });
+db.InvestmentRequest.belongsTo(db.User, { foreignKey: 'user_id'});
 db.InvestmentRequest.hasMany(db.InvestmentOffer, { foreignKey: 'request_id', as: 'investmentOffers' });
 
 // Investment associations
-db.Investment.belongsTo(db.User, { foreignKey: 'user_id', as: 'investingUser' });
+db.Investment.belongsTo(db.User, { foreignKey: 'user_id' });
 db.Investment.belongsTo(db.Business, { foreignKey: 'business_id', as: 'business' });
 db.Investment.hasOne(db.Contract, { foreignKey: 'investment_id', as: 'contract' });
 
@@ -70,13 +70,13 @@ db.Investment.hasOne(db.Contract, { foreignKey: 'investment_id', as: 'contract' 
 db.Contract.belongsTo(db.Investment, { foreignKey: 'investment_id', as: 'investment' });
 
 // BusinessPerformance associations
-db.BusinessPerformance.belongsTo(db.Business, { foreignKey: 'business_id', as: 'performanceBusiness' });
+db.BusinessPerformance.belongsTo(db.Business, { foreignKey: 'business_id' });
 
 // BestPerformingBusiness associations
-db.BestPerformingBusiness.belongsTo(db.Business, { foreignKey: 'business_id', as: 'bestBusiness' });
+db.BestPerformingBusiness.belongsTo(db.Business, { foreignKey: 'business_id' });
 
 // BestPerformingInvestor associations
-db.BestPerformingInvestor.belongsTo(db.User, { foreignKey: 'user_id', as: 'investingUser' });
+db.BestPerformingInvestor.belongsTo(db.User, { foreignKey: 'user_id'});
 
 // InvestmentOffer associations
 db.InvestmentOffer.belongsTo(db.InvestmentRequest, { foreignKey: 'request_id', as: 'investmentRequest' });

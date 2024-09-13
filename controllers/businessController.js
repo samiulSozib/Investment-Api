@@ -110,23 +110,7 @@ const getBusinessByCategory = async (req, res) => {
     }
 };
 
-// Get businesses by user ID
-const getBusinessByUserId = async (req, res) => {
-    const { user_id } = req.params;
 
-    try {
-        const businesses = await businessService.getBusinessByUserId(user_id);
-        return res.status(200).json({
-            status: true,
-            businesses,
-        });
-    } catch (error) {
-        return res.status(404).json({
-            status: false,
-            message: error.message || 'Businesses not found for this user',
-        });
-    }
-};
 
 module.exports = {
     createBusiness,
@@ -134,6 +118,5 @@ module.exports = {
     getAllBusinesses,
     updateBusiness,
     deleteBusiness,
-    getBusinessByCategory,
-    getBusinessByUserId
+    getBusinessByCategory
 };

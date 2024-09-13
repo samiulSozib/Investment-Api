@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const contractController = require('../controllers/contractController');
+const contractController = require('../controllers/contractsController');
 
 router.post('/', contractController.createContract);
 router.put('/:id', contractController.updateContract);
