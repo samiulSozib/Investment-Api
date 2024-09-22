@@ -3,14 +3,15 @@ const businessService = require('../services/businessService');
 
 // Create Business Controller
 const createBusiness = async (req, res) => {
-    const data = req.body;
+    const { name, category_id, min_investment, max_investment, min_investment_period, max_investment_period, profit_share_ratio, loss_share_ratio} = req.body;
+    const files=req.files
 
     try {
-        const newBusiness = await businessService.createBusiness(data);
+        const newBusiness = await businessService.createBusiness({ name, category_id, min_investment, max_investment, min_investment_period, max_investment_period, profit_share_ratio, loss_share_ratio,files});
         return res.status(201).json({
             status: true,
             message: 'Business created successfully',
-            business: newBusiness,
+            data: newBusiness,
         });
     } catch (error) {
         return res.status(400).json({
@@ -28,7 +29,7 @@ const getBusinessById = async (req, res) => {
         const business = await businessService.getBusinessById(id);
         return res.status(200).json({
             status: true,
-            business,
+            data:business,
         });
     } catch (error) {
         return res.status(404).json({
@@ -44,7 +45,7 @@ const getAllBusinesses = async (req, res) => {
         const businesses = await businessService.getAllBusinesses();
         return res.status(200).json({
             status: true,
-            businesses,
+            data:businesses,
         });
     } catch (error) {
         return res.status(500).json({
@@ -57,14 +58,15 @@ const getAllBusinesses = async (req, res) => {
 // Update Business Controller
 const updateBusiness = async (req, res) => {
     const { id } = req.params;
-    const data = req.body;
+    const {name, category_id, min_investment, max_investment, min_investment_period, max_investment_period, profit_share_ratio, loss_share_ratio,existing_images} = req.body;
+    const files=req.files
 
     try {
-        const updatedBusiness = await businessService.updateBusiness(id, data);
+        const updatedBusiness = await businessService.updateBusiness(id, {name, category_id, min_investment, max_investment, min_investment_period, max_investment_period, profit_share_ratio, loss_share_ratio,files,existing_images});
         return res.status(200).json({
             status: true,
             message: 'Business updated successfully',
-            business: updatedBusiness,
+            data: updatedBusiness,
         });
     } catch (error) {
         return res.status(404).json({
@@ -100,12 +102,31 @@ const getBusinessByCategory = async (req, res) => {
         const businesses = await businessService.getBusinessByCategory(category_id);
         return res.status(200).json({
             status: true,
-            businesses,
+            data:businesses,
         });
     } catch (error) {
         return res.status(404).json({
             status: false,
             message: error.message || 'Businesses not found for this category',
+        });
+    }
+};
+
+const changeStatus = async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    try {
+        const updatedBusiness = await businessService.changeBusinessStatus(id, status);
+        return res.status(200).json({
+            status: true,
+            message: 'Business status updated successfully',
+            data: updatedBusiness,
+        });
+    } catch (error) {
+        return res.status(400).json({
+            status: false,
+            message: error.message || 'Error updating business status',
         });
     }
 };
@@ -118,5 +139,6 @@ module.exports = {
     getAllBusinesses,
     updateBusiness,
     deleteBusiness,
-    getBusinessByCategory
+    getBusinessByCategory,
+    changeStatus
 };

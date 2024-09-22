@@ -3,12 +3,14 @@ const newsBlogService = require('../services/newsBlogService');
 // Create a new blog
 exports.createNewsBlog = async (req, res) => {
     const { title, content, author_id } = req.body;
+    const files=req.files
 
     try {
         const newBlog = await newsBlogService.createNewsBlog({
             title,
             content,
-            author_id
+            author_id,
+            files
         });
         return res.status(201).json({
             status: true,
@@ -16,6 +18,7 @@ exports.createNewsBlog = async (req, res) => {
             data: newBlog
         });
     } catch (error) {
+        
         return res.status(500).json({
             status: false,
             message: error.message
@@ -26,12 +29,18 @@ exports.createNewsBlog = async (req, res) => {
 // Update a news blog by ID
 exports.updateNewsBlog = async (req, res) => {
     const blogId = req.params.id;
-    const { title, content } = req.body;
+    const { title, content,existing_images } = req.body;
+    const files=req.files
+
+    //console.log(existing_images)
+    //console.log(files)
 
     try {
         const updatedBlog = await newsBlogService.updateNewsBlog(blogId, {
             title,
-            content
+            content,
+            existing_images,
+            files
         });
         return res.status(200).json({
             status: true,

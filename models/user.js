@@ -16,7 +16,7 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.ENUM('admin', 'entrepreneur', 'investor'), 
             allowNull: false
         },
-        is_varified:{
+        is_verified:{
             type:DataTypes.BOOLEAN,
             defaultValue:false
         }

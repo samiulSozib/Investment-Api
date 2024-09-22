@@ -9,6 +9,7 @@ const register = async (req, res) => {
             user
         });
     } catch (error) {
+        
         let statusCode;
 
         switch (error.message) {
@@ -70,8 +71,9 @@ const updateProfile = async (req, res) => {
     try {
         const userId = req.params.id;
         const updatedData = req.body;
+        const imageFile=req.file
 
-        const updatedUser = await authService.updateUserProfile(userId, updatedData);
+        const updatedUser = await authService.updateUserProfile(userId, updatedData,imageFile);
         return res.status(200).json({ message: 'Profile updated successfully', user: updatedUser });
     } catch (error) {
         return res.status(400).json({ message: error.message });

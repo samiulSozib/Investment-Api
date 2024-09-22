@@ -5,6 +5,7 @@ const investmentRequestService = require('../services/investmentRequestService')
 // Create a new investment request
 const createInvestmentRequest = async (req, res) => {
     const { user_id, business_name, description, requested_amount, proposed_share } = req.body;
+    const files=req.files
 
     try {
         const newRequest = await investmentRequestService.createInvestmentRequest({
@@ -13,6 +14,7 @@ const createInvestmentRequest = async (req, res) => {
             description,
             requested_amount,
             proposed_share,
+            files
         });
         return res.status(201).json({
             status: true,
@@ -30,7 +32,8 @@ const createInvestmentRequest = async (req, res) => {
 // Update an investment request
 const updateInvestmentRequest = async (req, res) => {
     const request_id = req.params.id;
-    const { business_name, description, requested_amount, proposed_share, status } = req.body;
+    const { business_name, description, requested_amount, proposed_share, status,existing_images } = req.body;
+    const files=req.files
 
     try {
         const updatedRequest = await investmentRequestService.updateInvestmentRequest(request_id, {
@@ -39,6 +42,8 @@ const updateInvestmentRequest = async (req, res) => {
             requested_amount,
             proposed_share,
             status,
+            files,
+            existing_images
         });
         return res.status(200).json({
             status: true,
@@ -123,11 +128,31 @@ const getInvestmentRequestById = async (req, res) => {
     }
 };
 
+const changeStatus = async (req, res) => {
+    const { id } = req.params; // investment_request_id
+    const { status } = req.body;
+
+    try {
+        const updatedRequest = await investmentRequestService.changeInvestmentRequestStatus(id, status);
+        return res.status(200).json({
+            status: true,
+            message: 'Investment request status updated successfully',
+            data: updatedRequest,
+        });
+    } catch (error) {
+        return res.status(400).json({
+            status: false,
+            message: error.message || 'Error updating investment request status',
+        });
+    }
+};
+
 module.exports={
     createInvestmentRequest,
     updateInvestmentRequest,
     deleteInvestmentRequest,
     getInvestmentRequests,
     getInvestmentRequestsByUserId,
-    getInvestmentRequestById
+    getInvestmentRequestById,
+    changeStatus
 }

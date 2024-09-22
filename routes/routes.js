@@ -9,6 +9,7 @@ const newsBlogRoute=require('./newsBlogRoute')
 const bestPerformingInvestorRoute=require('./bestPerformingInvestorRoute')
 const bestPerformingBusinessRoute=require('./bestPerformingBusinessRoute')
 const businessPerformanceRoute=require('./businessPerformanceRoute')
+const userRoute=require('./userRoute')
 
 const routes = [
     {
@@ -54,6 +55,10 @@ const routes = [
     {
         path:'/business-performance',
         handler:businessPerformanceRoute
+    },
+    {
+        path:'/users',
+        handler:userRoute
     },
     {
         path: '/',

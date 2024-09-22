@@ -109,10 +109,49 @@ const getContractById = async (contract_id) => {
     }
 };
 
+const changeContractStatus = async (contract_id, newStatus) => {
+    const transaction = await db.sequelize.transaction();
+
+    try {
+        // Fetch the contract
+        const contract = await db.Contract.findByPk(contract_id, { transaction });
+
+        if (!contract) {
+            throw new Error('Contract not found');
+        }
+
+        // Validate the new status
+        const validStatuses = ['active', 'terminated', 'completed'];
+        if (!validStatuses.includes(newStatus.toLowerCase())) {
+            throw new Error('Invalid status');
+        }
+
+        // Update the status
+        contract.status = newStatus.toLowerCase();
+        await contract.save({ transaction });
+
+        // Optionally, include associated models
+        const updatedContract = await db.Contract.findByPk(contract_id, {
+            include: [
+                { model: db.Investment, as: 'investment' },
+                // Add other associations if needed
+            ],
+            transaction
+        });
+
+        await transaction.commit();
+        return updatedContract;
+    } catch (error) {
+        await transaction.rollback();
+        throw error;
+    }
+};
+
 module.exports = {
     createContract,
     updateContract,
     deleteContract,
     getContracts,
-    getContractById
+    getContractById,
+    changeContractStatus
 };

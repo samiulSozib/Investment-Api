@@ -121,11 +121,31 @@ const getInvestmentsByBusinessId = async (req, res) => {
     }
 };
 
+const changeStatus = async (req, res) => {
+    const { id } = req.params; // investment_id
+    const { status } = req.body;
+
+    try {
+        const updatedInvestment = await investmentService.changeInvestmentStatus(id, status);
+        return res.status(200).json({
+            status: true,
+            message: 'Investment status updated successfully',
+            data: updatedInvestment,
+        });
+    } catch (error) {
+        return res.status(400).json({
+            status: false,
+            message: error.message || 'Error updating investment status',
+        });
+    }
+};
+
 module.exports={
     createInvestment,
     updateInvestment,
     deleteInvestment,
     getInvestments,
     getInvestmentsByUserId,
-    getInvestmentsByBusinessId
+    getInvestmentsByBusinessId,
+    changeStatus
 }

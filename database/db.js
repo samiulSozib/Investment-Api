@@ -7,6 +7,13 @@ const sequelize = new Sequelize('investment_project', 'root', '', {
     pool: { max: 5, min: 0, idle: 10000 }
 })
 
+// const sequelize = new Sequelize('nodescri_investment', 'nodescri_investment', '@tJ6*XyuD?[}', {
+//     host: '173.252.167.120',
+//     logging: true,
+//     dialect: 'mysql',
+//     pool: { max: 5, min: 0, idle: 10000 }
+// })
+
 sequelize.authenticate()
     .then(() => {
         console.log('databse connect success')
@@ -40,12 +47,14 @@ db.sequelize.sync({ force: false })
     db.InvestmentOffer = require('../models/investment_offer')(sequelize, DataTypes);
     db.NewsBlog = require('../models/news_blog')(sequelize, DataTypes);
     db.OTP=require('../models/otp')(sequelize,DataTypes)
+    db.Image=require('../models/image')(sequelize,DataTypes)
 
 
     // User associations
 db.User.hasMany(db.InvestmentRequest, { foreignKey: 'user_id', as: 'investmentRequests' });
 db.User.hasMany(db.Investment, { foreignKey: 'user_id', as: 'investments' });
 db.User.hasMany(db.NewsBlog, { foreignKey: 'author_id', as: 'newsBlogs' });
+db.User.hasMany(db.InvestmentOffer,{foreignKey:'investor_id',as:'invesmentOffers'})
 db.User.hasMany(db.BestPerformingInvestor, { foreignKey: 'user_id', as: 'bestPerformingInvestors' });
 
 // BusinessCategory associations
@@ -80,11 +89,22 @@ db.BestPerformingInvestor.belongsTo(db.User, { foreignKey: 'user_id'});
 
 // InvestmentOffer associations
 db.InvestmentOffer.belongsTo(db.InvestmentRequest, { foreignKey: 'request_id', as: 'investmentRequest' });
-db.InvestmentOffer.belongsTo(db.User, { foreignKey: 'investor_id', as: 'investor' });
+db.InvestmentOffer.belongsTo(db.User, { foreignKey: 'investor_id',as:'invesmentOffers' });
 
 // NewsBlog associations
 db.NewsBlog.belongsTo(db.User, { foreignKey: 'author_id', as: 'author' });
 
+// Image Associations 
+db.User.hasOne(db.Image,{foreignKey:'foreign_key_id',as:'profile_image',scope:{entry_type:'user'}})
+db.Image.belongsTo(db.User,{foreignKey:'foreign_key_id',as:'profile_image'})
 
+db.NewsBlog.hasMany(db.Image, { foreignKey: 'foreign_key_id',as:'news_blogs_images',constraints: false});
+db.Image.belongsTo(db.NewsBlog, { foreignKey: 'foreign_key_id',as:'news_blogs_images',constraints: false});
+
+db.Business.hasMany(db.Image, { foreignKey: 'foreign_key_id',as:'business_images',constraints: false});
+db.Image.belongsTo(db.Business, { foreignKey: 'foreign_key_id',as:'business_images',constraints: false});
+
+db.InvestmentRequest.hasMany(db.Image, { foreignKey: 'foreign_key_id', as: 'investment_request_images', constraints: false });
+db.Image.belongsTo(db.InvestmentRequest, { foreignKey: 'foreign_key_id',as:'investment_request_images', constraints: false });
 
 module.exports = db

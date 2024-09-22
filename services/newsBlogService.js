@@ -1,7 +1,7 @@
 const db = require('../database/db');
 
 // Create a new news blog
-const createNewsBlog = async ({ title, content, author_id }) => {
+const createNewsBlog = async ({ title, content, author_id,files }) => {
     const transaction = await db.sequelize.transaction();
     try {
         const author = await db.User.findByPk(author_id, { transaction });
@@ -15,8 +15,30 @@ const createNewsBlog = async ({ title, content, author_id }) => {
             author_id
         }, { transaction });
 
+        //console.log(files)
+
+        if (files && files.length > 0) {
+            const imageEntries = files.map(file => ({
+                entry_type: 'newsBlogs',
+                foreign_key_id: newBlog.id,
+                image_url: `${process.env.base_url}/uploads/${file.filename}`
+            }));
+
+            await db.Image.bulkCreate(imageEntries, { transaction });
+        }
+
+        const createdBlog = await db.NewsBlog.findByPk(newBlog.id, {
+            include: [{
+                model: db.Image,
+                as: 'news_blogs_images',  // Use the same alias defined in the association
+                where: { entry_type: 'newsBlogs' },
+                required: false // Left join to include images only if they exist
+            }],
+            transaction
+        });
+        
         await transaction.commit();
-        return newBlog;
+        return createdBlog;
     } catch (error) {
         await transaction.rollback();
         throw error;
@@ -24,7 +46,7 @@ const createNewsBlog = async ({ title, content, author_id }) => {
 };
 
 // Update an existing news blog
-const updateNewsBlog = async (blogId, { title, content }) => {
+const updateNewsBlog = async (blogId, { title, content, files, existing_images }) => {
     const transaction = await db.sequelize.transaction();
     try {
         const blog = await db.NewsBlog.findByPk(blogId, { transaction });
@@ -32,6 +54,7 @@ const updateNewsBlog = async (blogId, { title, content }) => {
             throw new Error('News blog not found');
         }
 
+        // Update blog title and content
         await db.NewsBlog.update({
             title,
             content
@@ -40,14 +63,58 @@ const updateNewsBlog = async (blogId, { title, content }) => {
             transaction
         });
 
-        const updatedBlog = await db.NewsBlog.findByPk(blogId, { transaction });
+        if (existing_images) {
+            // Delete images that are NOT in the existingImagesToKeep array
+            await db.Image.destroy({
+                where: {
+                    entry_type: 'newsBlogs',
+                    foreign_key_id: blogId,
+                    image_url: { [db.Sequelize.Op.notIn]: JSON.parse(existing_images) }
+                },
+                transaction
+            });
+        } else {
+            // No existing images to keep, delete all
+            await db.Image.destroy({
+                where: {
+                    entry_type: 'newsBlogs',
+                    foreign_key_id: blogId
+                },
+                transaction
+            });
+        }
+
+        // Save new images (if any)
+        if (files && files.length > 0) {
+            const imageEntries = files.map(file => ({
+                entry_type: 'newsBlogs',
+                foreign_key_id: blogId,
+                image_url: `${process.env.base_url}/uploads/${file.filename}`
+            }));
+
+            await db.Image.bulkCreate(imageEntries, { transaction });
+        }
+
+        // Fetch the updated blog with images
+        const updatedBlog = await db.NewsBlog.findByPk(blogId, {
+            include: [{
+                model: db.Image,
+                as: 'news_blogs_images',
+                where: { entry_type: 'newsBlogs' },
+                required: false
+            }],
+            transaction
+        });
+
         await transaction.commit();
         return updatedBlog;
     } catch (error) {
         await transaction.rollback();
+        
         throw error;
     }
 };
+
 
 // Delete a news blog
 const deleteNewsBlog = async (blogId) => {
@@ -75,7 +142,15 @@ const deleteNewsBlog = async (blogId) => {
 const getAllNewsBlogs = async () => {
     try {
         return await db.NewsBlog.findAll({
-            include: [{ model: db.User, as: 'author' }]
+            include: [
+                { model: db.User, as: 'author' },
+                {
+                    model: db.Image,
+                    as: 'news_blogs_images',  // Use the same alias defined in the association
+                    where: { entry_type: 'newsBlogs' },
+                    required: false // Left join to include images only if they exist
+                }
+            ]
         });
     } catch (error) {
         throw error;
@@ -86,7 +161,15 @@ const getAllNewsBlogs = async () => {
 const getNewsBlogById = async (blogId) => {
     try {
         const blog = await db.NewsBlog.findByPk(blogId, {
-            include: [{ model: db.User, as: 'author' }]
+            include: [
+                { model: db.User, as: 'author' },
+                {
+                    model: db.Image,
+                    as: 'news_blogs_images',  // Use the same alias defined in the association
+                    where: { entry_type: 'newsBlogs' },
+                    required: false // Left join to include images only if they exist
+                }
+            ]
         });
 
         if (!blog) {

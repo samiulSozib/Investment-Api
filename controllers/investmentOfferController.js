@@ -119,3 +119,23 @@ exports.getInvestmentOfferById = async (req, res) => {
         });
     }
 };
+
+
+exports.changeStatus = async (req, res) => {
+    const { id } = req.params; // offer_id
+    const { status } = req.body;
+
+    try {
+        const updatedOffer = await investmentOfferService.changeInvestmentOfferStatus(id, status);
+        return res.status(200).json({
+            status: true,
+            message: 'Investment offer status updated successfully',
+            data: updatedOffer,
+        });
+    } catch (error) {
+        return res.status(400).json({
+            status: false,
+            message: error.message || 'Error updating investment offer status',
+        });
+    }
+};

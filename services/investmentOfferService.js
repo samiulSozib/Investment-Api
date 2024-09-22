@@ -138,6 +138,44 @@ const getInvestmentOfferById = async (offer_id) => {
     }
 };
 
+const changeInvestmentOfferStatus = async (offer_id, newStatus) => {
+    const transaction = await sequelize.transaction();
+
+    try {
+        // Fetch the investment offer
+        const investmentOffer = await db.InvestmentOffer.findByPk(offer_id, { transaction });
+
+        if (!investmentOffer) {
+            throw new Error('Investment offer not found');
+        }
+
+        // Validate the new status
+        const validStatuses = ['pending', 'accepted', 'rejected'];
+        if (!validStatuses.includes(newStatus)) {
+            throw new Error('Invalid status');
+        }
+
+        // Update the status
+        investmentOffer.status = newStatus;
+        await investmentOffer.save({ transaction });
+
+        // Optionally, include associated models
+        const updatedOffer = await db.InvestmentOffer.findByPk(offer_id, {
+            include: [
+                { model: db.InvestmentRequest, as: 'investmentRequest' },
+                { model: db.User, as: 'investor' },
+            ],
+            transaction
+        });
+
+        await transaction.commit();
+        return updatedOffer;
+    } catch (error) {
+        await transaction.rollback();
+        throw error;
+    }
+};
+
 module.exports = {
     createInvestmentOffer,
     updateInvestmentOffer,
@@ -145,4 +183,5 @@ module.exports = {
     getInvestmentOffers,
     getInvestmentOffersByRequestId,
     getInvestmentOfferById,
+    changeInvestmentOfferStatus
 };

@@ -4,7 +4,7 @@ const db = require('../database/db');
 const { Op } = require('sequelize');
 
 // Create a new investment request
-const createInvestmentRequest = async ({ user_id, business_name, description, requested_amount, proposed_share }) => {
+const createInvestmentRequest = async ({ user_id, business_name, description, requested_amount, proposed_share,files }) => {
     const transaction = await db.sequelize.transaction();
 
     try {
@@ -24,8 +24,30 @@ const createInvestmentRequest = async ({ user_id, business_name, description, re
             status: 'pending',
         }, { transaction });
 
+        // Save the images associated with the investment request
+        if (files && files.length > 0) {
+            const imageEntries = files.map(file => ({
+                entry_type: 'investmentRequest',
+                foreign_key_id: newRequest.id,
+                image_url: `${process.env.base_url}/uploads/${file.filename}`
+            }));
+            //console.log(imageEntries)
+            await db.Image.bulkCreate(imageEntries, { transaction });
+        }
+
+        // Return the investment request with associated images
+        const createdRequest = await db.InvestmentRequest.findByPk(newRequest.id, {
+            include: [{
+                model: db.Image,
+                as: 'investment_request_images',
+                where: { entry_type: 'investmentRequest' },
+                required: false // Left join to include images only if they exist
+            }],
+            transaction
+        });
+
         await transaction.commit();
-        return newRequest;
+        return createdRequest;
     } catch (error) {
         await transaction.rollback();
         throw error;
@@ -33,7 +55,7 @@ const createInvestmentRequest = async ({ user_id, business_name, description, re
 };
 
 // Update an existing investment request
-const updateInvestmentRequest = async (request_id, { business_name, description, requested_amount, proposed_share, status }) => {
+const updateInvestmentRequest = async (request_id, { business_name, description, requested_amount, proposed_share, status,files }) => {
     const transaction = await db.sequelize.transaction();
 
     try {
@@ -48,7 +70,48 @@ const updateInvestmentRequest = async (request_id, { business_name, description,
             { where: { id: request_id }, transaction }
         );
 
-        const updatedRequest = await db.InvestmentRequest.findByPk(request_id, { transaction });
+        if (existing_images) {
+            // Delete images that are NOT in the existingImagesToKeep array
+            await db.Image.destroy({
+                where: {
+                    entry_type: 'investmentRequest',
+                    foreign_key_id: id,
+                    image_url: { [db.Sequelize.Op.notIn]: JSON.parse(existing_images) }
+                },
+                transaction
+            });
+        } else {
+            // No existing images to keep, delete all
+            await db.Image.destroy({
+                where: {
+                    entry_type: 'investmentRequest',
+                    foreign_key_id: request_id
+                },
+                transaction
+            });
+        }
+
+        if (files && files.length > 0) {
+            // Save new images
+            const imageEntries = files.map(file => ({
+                entry_type: 'investmentRequest',
+                foreign_key_id: request_id,
+                image_url: `${process.env.base_url}/uploads/${file.filename}`
+            }));
+            await db.Image.bulkCreate(imageEntries, { transaction });
+        }
+
+
+         const updatedRequest = await db.InvestmentRequest.findByPk(request_id, {
+            include: [{
+                model: db.Image,
+                as: 'investment_request_images',
+                where: { entry_type: 'investmentRequest' },
+                required: false // Left join to include images only if they exist
+            }],
+            transaction
+        });
+
         await transaction.commit();
         return updatedRequest;
     } catch (error) {
@@ -85,6 +148,12 @@ const getInvestmentRequests = async () => {
             include: [
                 { model: db.User, as: 'user' },
                 { model: db.InvestmentOffer, as: 'investmentOffers' },
+                {
+                    model: db.Image,
+                    as: 'investment_request_images',
+                    where: { entry_type: 'investmentRequest' },
+                    required: false // Left join to include images only if they exist
+                }
             ],
         });
         return requests;
@@ -100,6 +169,12 @@ const getInvestmentRequestsByUserId = async (user_id) => {
             where: { user_id },
             include: [
                 { model: db.InvestmentOffer, as: 'investmentOffers' },
+                {
+                    model: db.Image,
+                    as: 'investment_request_images',
+                    where: { entry_type: 'investmentRequest' },
+                    required: false // Left join to include images only if they exist
+                }
             ],
         });
 
@@ -120,6 +195,12 @@ const getInvestmentRequestById = async (request_id) => {
             include: [
                 { model: db.User, as: 'user' },
                 { model: db.InvestmentOffer, as: 'investmentOffers' },
+                {
+                    model: db.Image,
+                    as: 'investment_request_images',
+                    where: { entry_type: 'investmentRequest' },
+                    required: false // Left join to include images only if they exist
+                }
             ],
         });
 
@@ -133,6 +214,49 @@ const getInvestmentRequestById = async (request_id) => {
     }
 };
 
+const changeInvestmentRequestStatus = async (request_id, newStatus) => {
+    const transaction = await sequelize.transaction();
+
+    try {
+        // Fetch the investment request
+        const investmentRequest = await db.InvestmentRequest.findByPk(request_id, { transaction });
+
+        if (!investmentRequest) {
+            throw new Error('Investment request not found');
+        }
+
+        // Validate the new status
+        const validStatuses = ['pending', 'approved', 'rejected'];
+        if (!validStatuses.includes(newStatus)) {
+            throw new Error('Invalid status');
+        }
+
+        // Update the status
+        investmentRequest.status = newStatus;
+        await investmentRequest.save({ transaction });
+
+        // Optionally, you can include associated images or other relations
+        const updatedRequest = await db.InvestmentRequest.findByPk(request_id, {
+            include: [
+                {
+                    model: db.Image,
+                    as: 'investment_request_images',
+                    where: { entry_type: 'investmentRequest' },
+                    required: false
+                },
+                // Add other associations if needed
+            ],
+            transaction
+        });
+
+        await transaction.commit();
+        return updatedRequest;
+    } catch (error) {
+        await transaction.rollback();
+        throw error;
+    }
+};
+
 module.exports = {
     createInvestmentRequest,
     updateInvestmentRequest,
@@ -140,4 +264,5 @@ module.exports = {
     getInvestmentRequests,
     getInvestmentRequestsByUserId,
     getInvestmentRequestById,
+    changeInvestmentRequestStatus
 };

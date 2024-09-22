@@ -15,6 +15,7 @@ const registerUser = async ({ name, email, password, role }) => {
             where: { email },
             transaction
         });
+       
 
         // Check if user exists and is verified
         if (existingUser && existingUser.is_verified) {
@@ -37,7 +38,7 @@ const registerUser = async ({ name, email, password, role }) => {
 
             const updatedUser = await db.User.findOne({
                 where: { email },
-                include: [{ model: db.Country }], // Assuming there's a relation with Country model
+                
                 transaction
             });
 
@@ -286,7 +287,7 @@ const verifyUserForForgotPassword = async ({ user_id, otp }) => {
 
 
 // update user profile
-const updateUserProfile = async (userId, updatedData) => {
+const updateUserProfile = async (userId, updatedData,imageFile) => {
     const transaction = await db.sequelize.transaction(); 
     try {
         const user = await db.User.findByPk(userId, { transaction: transaction }); 
@@ -307,8 +308,44 @@ const updateUserProfile = async (userId, updatedData) => {
       
         await user.save({ transaction: transaction });
 
+        if (imageFile) {
+            const imageUrl = `${process.env.base_url}/uploads/${imageFile.filename}`;
+
+            // Check if the user already has an image and update it, or insert a new one
+            const existingImage = await db.Image.findOne({
+                where: {
+                    foreign_key_id: userId,
+                    entry_type: 'user'
+                },
+                transaction
+            });
+
+            if (existingImage) {
+                // Update existing image
+                existingImage.image_url = imageUrl;
+                await existingImage.save({ transaction });
+            } else {
+                // Insert new image
+                await db.Image.create({
+                    entry_type: 'user',
+                    foreign_key_id: userId,
+                    image_url: imageUrl
+                }, { transaction });
+            }
+        }
+
+        const updatedUser = await db.User.findByPk(userId, {
+            include: [{
+                model: db.Image,
+                as: 'profile_image',
+                where: {foreign_key_id:userId, entry_type: 'user' },
+                required: false 
+            }]
+        });
+        
+
         await transaction.commit(); 
-        return user; 
+        return updatedUser; 
     } catch (error) {
         await transaction.rollback(); 
         throw new Error(error.message);

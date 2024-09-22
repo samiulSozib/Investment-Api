@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { validateRegister, validateLogin, validate } = require('../validators/authValidator');
 const authController = require('../controllers/authController');
+const upload = require('../middlewares/upload');
 
 // Registration route
 router.post('/sign-up', validateRegister, validate, authController.register);
@@ -21,6 +22,6 @@ router.post('/verify-forgot-password', authController.verifyUserForForgotPasswor
 
 
 // Update user 
-router.put('/update-user/:id',authController.updateProfile)
+router.put('/update-user/:id',upload.single('profile_image'),authController.updateProfile)
 
 module.exports = router;

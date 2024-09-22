@@ -138,6 +138,35 @@ const getInvestmentsByBusinessId = async (business_id) => {
     }
 };
 
+const changeInvestmentStatus = async (investment_id, newStatus) => {
+    const transaction = await sequelize.transaction();
+
+    try {
+        // Fetch the investment
+        const investment = await db.Investment.findByPk(investment_id, { transaction });
+
+        if (!investment) {
+            throw new Error('Investment not found');
+        }
+
+        // Validate the new status
+        const validStatuses = ['active', 'inactive', 'terminated', 'completed'];
+        if (!validStatuses.includes(newStatus)) {
+            throw new Error('Invalid status');
+        }
+
+        // Update the status
+        investment.status = newStatus;
+        await investment.save({ transaction });
+
+        await transaction.commit();
+        return investment;
+    } catch (error) {
+        await transaction.rollback();
+        throw error;
+    }
+};
+
 module.exports = {
     createInvestment,
     updateInvestment,
@@ -145,4 +174,5 @@ module.exports = {
     getInvestments,
     getInvestmentsByUserId,
     getInvestmentsByBusinessId,
+    changeInvestmentStatus
 };
