@@ -89,7 +89,7 @@ db.BestPerformingInvestor.belongsTo(db.User, { foreignKey: 'user_id'});
 
 // InvestmentOffer associations
 db.InvestmentOffer.belongsTo(db.InvestmentRequest, { foreignKey: 'request_id', as: 'investmentRequest' });
-db.InvestmentOffer.belongsTo(db.User, { foreignKey: 'investor_id',as:'invesmentOffers' });
+db.InvestmentOffer.belongsTo(db.User, { foreignKey: 'investor_id',as:'investor' });
 
 // NewsBlog associations
 db.NewsBlog.belongsTo(db.User, { foreignKey: 'author_id', as: 'author' });

@@ -161,10 +161,11 @@ const getBusinessById = async (id) => {
 
 
 // Fetch All Businesses
-const getAllBusinesses = async () => {
+const getAllBusinesses = async (page,item_per_page) => {
+    const offset=(page-1)*item_per_page
     const transaction = await db.sequelize.transaction();
     try {
-        const businesses = await db.Business.findAll({
+        const businesses = await db.Business.findAndCountAll({
             include: [
                 {
                     model: db.BusinessCategory, as: 'category'
@@ -178,7 +179,10 @@ const getAllBusinesses = async () => {
                     where: { entry_type: 'business' },
                     required: false // Left join to include images only if they exist
                 }
-            ],transaction
+            ],
+            limit:item_per_page,
+            offset:offset,
+            transaction
         });
         await transaction.commit(); // Commit the transaction on success
         return businesses;
@@ -214,10 +218,11 @@ const deleteBusiness = async (id) => {
 };
 
 // Get Business By Category
-const getBusinessByCategory = async (category_id) => {
+const getBusinessByCategory = async (category_id,page,item_per_page) => {
+    const offset=(page-1)*item_per_page
     const transaction = await sequelize.transaction();
     try {
-        const businesses = await db.Business.findAll({
+        const businesses = await db.Business.findAndCountAll({
             where: { category_id },
             include: [
                 { model: db.BusinessCategory, as: 'category' },
@@ -227,7 +232,10 @@ const getBusinessByCategory = async (category_id) => {
                     where: { entry_type: 'business' },
                     required: false // Left join to include images only if they exist
                 }
-            ],transaction
+            ],
+            limit:item_per_page,
+            offset:offset
+            ,transaction
         });
 
         if (businesses.length === 0) {
@@ -243,7 +251,7 @@ const getBusinessByCategory = async (category_id) => {
 
 
 const changeBusinessStatus = async (id, newStatus) => {
-    const transaction = await sequelize.transaction();
+    const transaction = await db.sequelize.transaction();
 
     try {
         const business = await db.Business.findByPk(id, { transaction });

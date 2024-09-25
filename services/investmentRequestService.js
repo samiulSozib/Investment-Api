@@ -142,9 +142,10 @@ const deleteInvestmentRequest = async (request_id) => {
 };
 
 // Get all investment requests
-const getInvestmentRequests = async () => {
+const getInvestmentRequests = async (page,item_per_page) => {
+    const offset=(page-1)*item_per_page
     try {
-        const requests = await db.InvestmentRequest.findAll({
+        const requests = await db.InvestmentRequest.findAndCountAll({
             include: [
                 { model: db.User, as: 'user' },
                 { model: db.InvestmentOffer, as: 'investmentOffers' },
@@ -155,6 +156,8 @@ const getInvestmentRequests = async () => {
                     required: false // Left join to include images only if they exist
                 }
             ],
+            limit:item_per_page,
+            offset:offset
         });
         return requests;
     } catch (error) {
@@ -163,9 +166,10 @@ const getInvestmentRequests = async () => {
 };
 
 // Get investment requests by User ID
-const getInvestmentRequestsByUserId = async (user_id) => {
+const getInvestmentRequestsByUserId = async (user_id,page,item_per_page) => {
+    const offset=(page-1)*item_per_page
     try {
-        const requests = await db.InvestmentRequest.findAll({
+        const requests = await db.InvestmentRequest.findAndCountAll({
             where: { user_id },
             include: [
                 { model: db.InvestmentOffer, as: 'investmentOffers' },
@@ -176,6 +180,8 @@ const getInvestmentRequestsByUserId = async (user_id) => {
                     required: false // Left join to include images only if they exist
                 }
             ],
+            limit:item_per_page,
+            offset:offset
         });
 
         if (requests.length === 0) {
@@ -215,7 +221,7 @@ const getInvestmentRequestById = async (request_id) => {
 };
 
 const changeInvestmentRequestStatus = async (request_id, newStatus) => {
-    const transaction = await sequelize.transaction();
+    const transaction = await db.sequelize.transaction();
 
     try {
         // Fetch the investment request

@@ -70,11 +70,22 @@ exports.deleteBusinessPerformance = async (req, res) => {
 
 // Get all business performance records
 exports.getAllBusinessPerformances = async (req, res) => {
+    const page=parseInt(req.query.page)||1
+    const item_per_page=parseInt(req.query.item_per_page)||10
     try {
-        const records = await businessPerformanceService.getAllBusinessPerformances();
+        const records = await businessPerformanceService.getAllBusinessPerformances(page,item_per_page);
+        const total_pages = Math.ceil(records.count / item_per_page);
         return res.status(200).json({
             status: true,
-            data: records
+            data: records.rows,
+            payload:{
+                pagination:{
+                    current_page:page,
+                    per_page:item_per_page,
+                    total_items:records.count,
+                    total_pages:total_pages
+                }
+            }
         });
     } catch (error) {
         return res.status(500).json({

@@ -75,11 +75,22 @@ exports.deleteNewsBlog = async (req, res) => {
 
 // Get all news blogs
 exports.getAllNewsBlogs = async (req, res) => {
+    const page=parseInt(req.query.page)||1
+    const item_per_page=parseInt(req.query.item_per_page)||10
     try {
-        const blogs = await newsBlogService.getAllNewsBlogs();
+        const blogs = await newsBlogService.getAllNewsBlogs(page,item_per_page);
+        const total_pages = Math.ceil(blogs.count / item_per_page);
         return res.status(200).json({
             status: true,
-            data: blogs
+            data: blogs.rows,
+            payload:{
+                pagination:{
+                    current_page:page,
+                    per_page:item_per_page,
+                    total_items:blogs.count,
+                    total_pages:total_pages
+                }
+            }
         });
     } catch (error) {
         return res.status(500).json({

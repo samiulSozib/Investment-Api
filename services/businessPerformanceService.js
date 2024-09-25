@@ -76,10 +76,11 @@ const deleteBusinessPerformance = async (id) => {
 };
 
 // Get all business performance records
-const getAllBusinessPerformances = async () => {
+const getAllBusinessPerformances = async (page,item_per_page) => {
+    const offset=(page-1)*item_per_page
     try {
-        return await db.BusinessPerformance.findAll({
-            include: [{ model: db.Business, as: 'business' }]
+        return await db.BusinessPerformance.findAndCountAll({
+            include: [{ model: db.Business, as: 'business' }],limit:item_per_page,offset:offset
         });
     } catch (error) {
         throw error;

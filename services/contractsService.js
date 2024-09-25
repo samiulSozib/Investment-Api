@@ -82,10 +82,11 @@ const deleteContract = async (contract_id) => {
 };
 
 // Get all contracts
-const getContracts = async () => {
+const getContracts = async (page,item_per_page) => {
+    const offset=(page-1)*item_per_page
     try {
-        return await db.Contract.findAll({
-            include: [{ model: db.Investment, as: 'investment' }]
+        return await db.Contract.findAndCountAll({
+            include: [{ model: db.Investment, as: 'investment' }],limit:item_per_page,offset:offset
         });
     } catch (error) {
         throw error;

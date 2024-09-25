@@ -71,11 +71,22 @@ const deleteInvestment = async (req, res) => {
 
 // Get all investments
 const getInvestments = async (req, res) => {
+    const page=parseInt(req.query.page)||1
+    const item_per_page=parseInt(req.query.item_per_page)||10
     try {
-        const investments = await investmentService.getInvestments();
+        const investments = await investmentService.getInvestments(page,item_per_page);
+        const total_pages = Math.ceil(investments.count / item_per_page);
         return res.status(200).json({
             status: true,
-            data: investments,
+            data: investments.rows,
+            payload:{
+                pagination:{
+                    current_page:page,
+                    per_page:item_per_page,
+                    total_items:investments.count,
+                    total_pages:total_pages
+                }
+            }
         });
     } catch (error) {
         return res.status(500).json({
@@ -88,12 +99,22 @@ const getInvestments = async (req, res) => {
 // Get investments by User ID
 const getInvestmentsByUserId = async (req, res) => {
     const user_id = req.params.user_id;
-
+    const page=parseInt(req.query.page)||1
+    const item_per_page=parseInt(req.query.item_per_page)||10
     try {
-        const investments = await investmentService.getInvestmentsByUserId(user_id);
+        const investments = await investmentService.getInvestmentsByUserId(user_id,page,item_per_page);
+        const total_pages = Math.ceil(investments.count / item_per_page);
         return res.status(200).json({
             status: true,
-            data: investments,
+            data: investments.rows,
+            payload:{
+                pagination:{
+                    current_page:page,
+                    per_page:item_per_page,
+                    total_items:investments.count,
+                    total_pages:total_pages
+                }
+            }
         });
     } catch (error) {
         return res.status(500).json({
@@ -105,13 +126,24 @@ const getInvestmentsByUserId = async (req, res) => {
 
 // Get investments by Business ID
 const getInvestmentsByBusinessId = async (req, res) => {
+    const page=parseInt(req.query.page)||1
+    const item_per_page=parseInt(req.query.item_per_page)||10
     const business_id = req.params.business_id;
 
     try {
-        const investments = await investmentService.getInvestmentsByBusinessId(business_id);
+        const investments = await investmentService.getInvestmentsByBusinessId(business_id,page,item_per_page);
+        const total_pages = Math.ceil(investments.count / item_per_page);
         return res.status(200).json({
             status: true,
-            data: investments,
+            data: investments.rows,
+            payload:{
+                pagination:{
+                    current_page:page,
+                    per_page:item_per_page,
+                    total_items:investments.count,
+                    total_pages:total_pages
+                }
+            }
         });
     } catch (error) {
         return res.status(500).json({

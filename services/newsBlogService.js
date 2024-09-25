@@ -139,9 +139,10 @@ const deleteNewsBlog = async (blogId) => {
 };
 
 // Get all news blogs
-const getAllNewsBlogs = async () => {
+const getAllNewsBlogs = async (page,item_per_page) => {
+    const offset=(page-1)*item_per_page
     try {
-        return await db.NewsBlog.findAll({
+        return await db.NewsBlog.findAndCountAll({
             include: [
                 { model: db.User, as: 'author' },
                 {
@@ -150,7 +151,9 @@ const getAllNewsBlogs = async () => {
                     where: { entry_type: 'newsBlogs' },
                     required: false // Left join to include images only if they exist
                 }
-            ]
+            ],
+            limit:item_per_page,
+            offset:offset
         });
     } catch (error) {
         throw error;

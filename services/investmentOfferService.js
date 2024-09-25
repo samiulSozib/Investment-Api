@@ -83,13 +83,16 @@ const deleteInvestmentOffer = async (offer_id) => {
 };
 
 // Get all investment offers
-const getInvestmentOffers = async () => {
+const getInvestmentOffers = async (page,item_per_page) => {
+    const offset=(page-1)*item_per_page
     try {
-        const offers = await db.InvestmentOffer.findAll({
+        const offers = await db.InvestmentOffer.findAndCountAll({
             include: [
                 { model: db.InvestmentRequest, as: 'investmentRequest' },
                 { model: db.User, as: 'investor' },
             ],
+            limit:item_per_page,
+            offset:offset
         });
         return offers;
     } catch (error) {
@@ -98,14 +101,17 @@ const getInvestmentOffers = async () => {
 };
 
 // Get investment offers by Request ID
-const getInvestmentOffersByRequestId = async (request_id) => {
+const getInvestmentOffersByRequestId = async (request_id,page,item_per_page) => {
+    const offset=(page-1)*item_per_page
     try {
-        const offers = await db.InvestmentOffer.findAll({
+        const offers = await db.InvestmentOffer.findAndCountAll({
             where: { request_id },
             include: [
                 { model: db.InvestmentRequest, as: 'investmentRequest' },
                 { model: db.User, as: 'investor' },
             ],
+            limit:item_per_page,
+            offset:offset
         });
 
         if (offers.length === 0) {
@@ -139,7 +145,7 @@ const getInvestmentOfferById = async (offer_id) => {
 };
 
 const changeInvestmentOfferStatus = async (offer_id, newStatus) => {
-    const transaction = await sequelize.transaction();
+    const transaction = await db.sequelize.transaction();
 
     try {
         // Fetch the investment offer

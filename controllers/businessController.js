@@ -42,10 +42,21 @@ const getBusinessById = async (req, res) => {
 // Get All Businesses Controller
 const getAllBusinesses = async (req, res) => {
     try {
-        const businesses = await businessService.getAllBusinesses();
+        const page=parseInt(req.query.page)||1
+        const item_per_page=parseInt(req.query.item_per_page)||10
+        const businesses = await businessService.getAllBusinesses(page,item_per_page);
+        const total_pages = Math.ceil(businesses.count / item_per_page);
         return res.status(200).json({
             status: true,
-            data:businesses,
+            data:businesses.rows,
+            payload:{
+                pagination:{
+                    current_page:page,
+                    per_page:item_per_page,
+                    total_items:businesses.count,
+                    total_pages:total_pages
+                }
+            }
         });
     } catch (error) {
         return res.status(500).json({
@@ -97,12 +108,22 @@ const deleteBusiness = async (req, res) => {
 // Get businesses by category
 const getBusinessByCategory = async (req, res) => {
     const { category_id } = req.params;
-
+    const page=parseInt(req.query.page)||1
+    const item_per_page=parseInt(req.query.item_per_page)||10
     try {
-        const businesses = await businessService.getBusinessByCategory(category_id);
+        const businesses = await businessService.getBusinessByCategory(category_id,page,item_per_page);
+        const total_pages = Math.ceil(businesses.count / item_per_page);
         return res.status(200).json({
             status: true,
-            data:businesses,
+            data:businesses.rows,
+            payload:{
+                pagination:{
+                    current_page:page,
+                    per_page:item_per_page,
+                    total_items:businesses.count,
+                    total_pages:total_pages
+                }
+            }
         });
     } catch (error) {
         return res.status(404).json({

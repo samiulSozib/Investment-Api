@@ -1,5 +1,6 @@
 const db = require('../database/db');
-const { Op } = require('sequelize');
+const { Op, literal } = require('sequelize');
+const { sequelize } = require('../database/db');
 
 // Create a new investment
 const createInvestment = async ({ user_id, business_id, amount, investment_date, investment_period, expected_return }) => {
@@ -84,13 +85,16 @@ const deleteInvestment = async (investment_id) => {
 };
 
 // Get all investments
-const getInvestments = async () => {
+const getInvestments = async (page,item_per_page) => {
+    const offset=(page-1)*item_per_page
     try {
-        const investments = await db.Investment.findAll({
+        const investments = await db.Investment.findAndCountAll({
             include: [
                 { model: db.User, as: 'user' },
                 { model: db.Business, as: 'business' },
             ],
+            limit:item_per_page,
+            offset:offset
         });
         return investments;
     } catch (error) {
@@ -99,13 +103,16 @@ const getInvestments = async () => {
 };
 
 // Get investments by User ID
-const getInvestmentsByUserId = async (user_id) => {
+const getInvestmentsByUserId = async (user_id,page,item_per_page) => {
+    const offset=(page-1)*item_per_page
     try {
-        const investments = await db.Investment.findAll({
+        const investments = await db.Investment.findAndCountAll({
             where: { user_id },
             include: [
                 { model: db.Business, as: 'business' },
             ],
+            limit:item_per_page,
+            offset:offset
         });
 
         if (investments.length === 0) {
@@ -119,13 +126,16 @@ const getInvestmentsByUserId = async (user_id) => {
 };
 
 // Get investments by Business ID
-const getInvestmentsByBusinessId = async (business_id) => {
+const getInvestmentsByBusinessId = async (business_id,page,item_per_page) => {
+    const offset=(page-1)*item_per_page
     try {
-        const investments = await db.Investment.findAll({
+        const investments = await db.Investment.findAndCountAll({
             where: { business_id },
             include: [
                 { model: db.User, as: 'user' },
             ],
+            limit:item_per_page,
+            offset:offset
         });
 
         if (investments.length === 0) {
@@ -139,7 +149,7 @@ const getInvestmentsByBusinessId = async (business_id) => {
 };
 
 const changeInvestmentStatus = async (investment_id, newStatus) => {
-    const transaction = await sequelize.transaction();
+    const transaction = await db.sequelize.transaction();
 
     try {
         // Fetch the investment
