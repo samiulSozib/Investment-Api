@@ -45,5 +45,39 @@ module.exports = (sequelize, DataTypes) => {
     //     as: 'contract'
     // });
 
+    Investment.calculateInvestmentSummaryByStatus = async function(userId) {
+        // Query to get the count and total amount for each status
+        const results = await this.findAll({
+            attributes: [
+                'status',
+                [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+                [sequelize.fn('SUM', sequelize.col('amount')), 'totalAmount']
+            ],
+            where: { user_id: userId },
+            group: ['status']
+        });
+
+        // Initialize the status summary object with default values
+        const statusSummary = {
+            active: { status: 'active', count: 0, totalAmount: 0.00 },
+            completed: { status: 'completed', count: 0, totalAmount: 0.00 },
+            terminated: { status: 'terminated', count: 0, totalAmount: 0.00 },
+            inactive: { status: 'inactive', count: 0, totalAmount: 0.00 }
+        };
+
+        // Populate the status summary with the actual data from the query results
+        results.forEach(row => {
+            const { status, count, totalAmount } = row.dataValues;
+            statusSummary[status] = {
+                status,
+                count: parseInt(count, 10) || 0,
+                totalAmount: parseFloat(totalAmount) || 0.00
+            };
+        });
+
+        // Return the summary as an array of status objects
+        return Object.values(statusSummary);
+    };
+
     return Investment;
 }

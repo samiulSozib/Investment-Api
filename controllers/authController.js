@@ -25,7 +25,7 @@ const register = async (req, res) => {
             default:
                 statusCode = 400; 
         }
-
+        console.log(error)
         return res.status(statusCode).json({
             status: 'error',
             msg: error.message
@@ -80,11 +80,25 @@ const updateProfile = async (req, res) => {
     }
 };
 
-const verifyUserForForgotPassword = async (req, res, next) => {
-    const { user_id, otp } = req.body;
+
+const sendOTPForForgetPassword = async (req, res) => {
+    const { email } = req.body;
 
     try {
-        const user = await authService.verifyUserForForgotPassword({ user_id, otp });
+        const user = await authService.sendOTPForForgetPassword( {email} );
+        return res.status(200).json({ status: true, message: 'OTP sent successfully', user });
+    } catch (error) {
+        const statusCode = error.message === 'OTP request limit reached for today' ? 429 : 500;
+        return res.status(statusCode).json({ status: false, message: error.message });
+    }
+};
+
+
+const verifyUserForForgotPassword = async (req, res, next) => {
+    const { email, otp } = req.body;
+
+    try {
+        const user = await authService.verifyUserForForgotPassword({ email, otp });
         return res.status(200).json({ status: true, message: 'User verification successful', user });
     } catch (error) {
         const statusCode = error.message === 'Invalid OTP' ? 404 : (error.message === 'OTP has expired' ? 400 : 500);
@@ -92,11 +106,34 @@ const verifyUserForForgotPassword = async (req, res, next) => {
     }
 };
 
+const changePassword=async(req,res,next)=>{
+    const {user_id,old_password,new_password}=req.body
+    try {
+        const response = await authService.changePassword(user_id, old_password, new_password);
+        return res.status(200).json({status:true,message:'Password changed successfully',response});
+    } catch (error) {
+        return res.status(400).json({ success: false, message: error.message });
+    }
+}
+
+const setNewPassword=async(req,res,next)=>{
+    const {user_id,new_password}=req.body
+    try {
+        const response = await authService.setNewPasswordPassword(user_id, new_password);
+        return res.status(200).json({status:true,message:'Password set successfully',response});
+    } catch (error) {
+        return res.status(400).json({ success: false, message: error.message });
+    }
+}
+
 module.exports = {
     register,
     login,
     verifyUser,
     resendOTP,
+    sendOTPForForgetPassword,
     verifyUserForForgotPassword,
-    updateProfile
+    updateProfile,
+    changePassword,
+    setNewPassword
 };

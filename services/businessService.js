@@ -33,18 +33,26 @@ const createBusiness = async ({ name, category_id, min_investment, max_investmen
         }
 
         const createdBusiness = await db.Business.findByPk(newBusiness.id, {
-            include: [{
+            include: [
+                {
+                    model:db.BusinessCategory,
+                    as:'category',
+                    required:false
+                },
+                {
                 model: db.Image,
                 as: 'business_images',
                 where: { entry_type: 'business' },
                 required: false // Left join to include images only if they exist
-            }],
+            }
+        ],
             transaction
         });
 
         await transaction.commit();
         return createdBusiness;
     } catch (error) {
+        console.log(error)
         await transaction.rollback();
         throw error;
     }
@@ -111,12 +119,19 @@ const updateBusiness = async (id, { name, category_id, min_investment, max_inves
         }
 
         const updatedBusiness = await db.Business.findByPk(id, {
-            include: [{
+            include: [
+                {
+                    model:db.BusinessCategory,
+                    as:'category',
+                    required:false
+                },
+                {
                 model: db.Image,
                 as: 'business_images',
                 where: { entry_type: 'business' },
                 required: false // Left join to include images only if they exist
-            }],
+                }
+            ],
             transaction
         });
 
@@ -137,6 +152,10 @@ const getBusinessById = async (id) => {
         const business = await db.Business.findByPk(id, {
             include: [
                 { model: db.BusinessCategory, as: 'category' },
+                {
+                    model:db.Investment, as:'investments',
+                    include:[{model:db.User,required:false,include:[{model:db.UserRole,as:'user_role',required:false}]}]
+                },
                 {
                     model: db.Image,
                     as: 'business_images',
@@ -161,17 +180,25 @@ const getBusinessById = async (id) => {
 
 
 // Fetch All Businesses
-const getAllBusinesses = async (page,item_per_page) => {
-    const offset=(page-1)*item_per_page
-    const transaction = await db.sequelize.transaction();
+const getAllBusinesses = async (page, item_per_page) => {
+    const transaction = await db.sequelize.transaction(); // Start transaction
+    console.log(page,item_per_page)
     try {
-        const businesses = await db.Business.findAndCountAll({
+        // If pagination is provided
+        const options = {
             include: [
                 {
                     model: db.BusinessCategory, as: 'category'
                 },
                 {
-                    model:db.Investment, as:'investments'
+                    model: db.Investment, as: 'investments',
+                    include: [
+                        {
+                            model: db.User,
+                            required: false, // Left join
+                            include: [{ model: db.UserRole, as: 'user_role', required: false }]
+                        }
+                    ]
                 },
                 {
                     model: db.Image,
@@ -180,17 +207,27 @@ const getAllBusinesses = async (page,item_per_page) => {
                     required: false // Left join to include images only if they exist
                 }
             ],
-            limit:item_per_page,
-            offset:offset,
-            transaction
-        });
+            transaction // Execute within transaction
+        };
+
+        // Add pagination only if both page and item_per_page are provided
+        if (page && item_per_page) {
+            const offset = (Math.max(page, 1) - 1) * item_per_page;
+            options.limit = item_per_page;
+            options.offset = offset;
+        }
+
+        const businesses = await db.Business.findAndCountAll(options);
+
         await transaction.commit(); // Commit the transaction on success
         return businesses;
     } catch (error) {
-        await transaction.rollback(); // Rollback if there's an error
+        await transaction.rollback(); // Rollback on error
+        console.error('Error fetching businesses:', error); // Log error for debugging
         throw error;
     }
 };
+
 
 // Delete Business
 const deleteBusiness = async (id) => {
@@ -226,6 +263,10 @@ const getBusinessByCategory = async (category_id,page,item_per_page) => {
             where: { category_id },
             include: [
                 { model: db.BusinessCategory, as: 'category' },
+                {
+                    model:db.Investment, as:'investments',
+                    include:[{model:db.User,required:false,include:[{model:db.UserRole,as:'user_role',required:false}]}]
+                },
                 {
                     model: db.Image,
                     as: 'business_images',

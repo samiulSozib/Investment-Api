@@ -19,6 +19,20 @@ const createInvestment = async ({ user_id, business_id, amount, investment_date,
             throw new Error('User not found');
         }
 
+        // Check if user has the 'Investor' role
+        const userRole = await db.UserRole.findOne({
+            where: { user_id, role: 'investor' },
+            transaction
+        });
+
+        // If user is not an Investor, add them to the 'user_roles' table
+        if (!userRole) {
+            await db.UserRole.create({
+                user_id,
+                role: 'investor'
+            }, { transaction });
+        }
+
         // Create the investment
         const newInvestment = await db.Investment.create({
             user_id,
@@ -85,45 +99,66 @@ const deleteInvestment = async (investment_id) => {
 };
 
 // Get all investments
-const getInvestments = async (page,item_per_page) => {
-    const offset=(page-1)*item_per_page
+const getInvestments = async (page, item_per_page) => {
     try {
-        const investments = await db.Investment.findAndCountAll({
+        // Construct the base query options
+        const options = {
             include: [
-                { model: db.User, as: 'user' },
-                { model: db.Business, as: 'business' },
-            ],
-            limit:item_per_page,
-            offset:offset
-        });
+                {
+                    model: db.User,
+                    as: 'user',
+                    include: [{ model: db.UserRole, as: 'user_role', required: false }]
+                },
+                { model: db.Business, as: 'business' }
+            ]
+        };
+
+        // If pagination is provided, add limit and offset
+        if (page && item_per_page) {
+            const offset = (Math.max(page, 1) - 1) * item_per_page;
+            options.limit = item_per_page;
+            options.offset = offset;
+        }
+
+        const investments = await db.Investment.findAndCountAll(options);
         return investments;
     } catch (error) {
+        console.error('Error fetching investments:', error); // Log error for debugging
         throw error;
     }
 };
 
-// Get investments by User ID
-const getInvestmentsByUserId = async (user_id,page,item_per_page) => {
-    const offset=(page-1)*item_per_page
-    try {
-        const investments = await db.Investment.findAndCountAll({
-            where: { user_id },
-            include: [
-                { model: db.Business, as: 'business' },
-            ],
-            limit:item_per_page,
-            offset:offset
-        });
 
-        if (investments.length === 0) {
+// Get investments by User ID
+const getInvestmentsByUserId = async (user_id, page, item_per_page) => {
+    try {
+        // Construct the base query options
+        const options = {
+            where: { user_id },
+            include: [{ model: db.Business, as: 'business' }]
+        };
+
+        // If pagination is provided, add limit and offset
+        if (page && item_per_page) {
+            const offset = (Math.max(page, 1) - 1) * item_per_page;
+            options.limit = item_per_page;
+            options.offset = offset;
+        }
+
+        const investments = await db.Investment.findAndCountAll(options);
+
+        // If no investments are found
+        if (investments.count === 0) {
             throw new Error('No investments found for this user');
         }
 
         return investments;
     } catch (error) {
+        console.error('Error fetching investments by user ID:', error); // Log error for debugging
         throw error;
     }
 };
+
 
 // Get investments by Business ID
 const getInvestmentsByBusinessId = async (business_id,page,item_per_page) => {
@@ -132,7 +167,7 @@ const getInvestmentsByBusinessId = async (business_id,page,item_per_page) => {
         const investments = await db.Investment.findAndCountAll({
             where: { business_id },
             include: [
-                { model: db.User, as: 'user' },
+                { model: db.User, as: 'user' ,include:[{model:db.UserRole,as:'user_role',required:false}]},
             ],
             limit:item_per_page,
             offset:offset
@@ -168,6 +203,17 @@ const changeInvestmentStatus = async (investment_id, newStatus) => {
         // Update the status
         investment.status = newStatus;
         await investment.save({ transaction });
+
+         // save contract of this offer 
+         if(newStatus==='accepted'){
+            await db.Contract.create({
+                investment_id,
+                terms:'',
+                start_date:null,
+                end_date:null,
+                status: 'active'
+            }, { transaction });
+         }
 
         await transaction.commit();
         return investment;

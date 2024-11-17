@@ -16,9 +16,6 @@ const validateRegister = [
         .isLength({ min: 6 })
         .withMessage('Password must be at least 6 characters long'),
 
-    check('role')
-        .isIn(['entrepreneur', 'investor'])
-        .withMessage('Role must be one of the following: entrepreneur, investor'),
 ];
 
 // Login validation

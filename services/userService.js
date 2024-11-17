@@ -1,42 +1,55 @@
 const db = require('../database/db');
 
 // Get all users
-const getAllUsers = async () => {
+const getAllUsers = async (page, item_per_page) => {
     const transaction = await db.sequelize.transaction();
     try {
-        // Fetch all users and conditionally include associations based on their role
-        const users = await db.User.findAll({
+        // Construct the base query options
+        const options = {
             include: [
                 {
                     model: db.Image,
                     as: 'profile_image',
-                    where: {entry_type: 'user' },
-                    required: false 
+                    where: { entry_type: 'user' },
+                    required: false
+                },
+                {
+                    model: db.UserRole,
+                    as: 'user_role',
+                    required: false
                 },
                 {
                     model: db.Investment,
                     as: 'investments',
-                    required: false, 
+                    required: false
                 },
                 {
                     model: db.InvestmentRequest,
                     as: 'investmentRequests',
-                    required: false, 
-                    
+                    required: false
+                },
+                {
+                    model: db.InvestmentOffer,
+                    as: 'investmentOffers',
+                    required: false
                 },
                 {
                     model: db.NewsBlog,
                     as: 'newsBlogs',
-                    required: false 
-                },
-                {
-                    model:db.InvestmentOffer,
-                    as:'invesmentOffers',
-                    required:false
+                    required: false
                 }
-            ],
-            transaction
-        });
+            ]
+        };
+
+        // If pagination is provided, add limit and offset
+        if (page && item_per_page) {
+            const offset = (Math.max(page, 1) - 1) * item_per_page; // Ensure page is at least 1
+            options.limit = item_per_page;
+            options.offset = offset;
+        }
+
+        // Fetch all users with the specified options
+        const users = await db.User.findAndCountAll(options);
 
         // Commit the transaction
         await transaction.commit();
@@ -45,6 +58,7 @@ const getAllUsers = async () => {
     } catch (error) {
         // Rollback the transaction in case of an error
         await transaction.rollback();
+        console.error('Error fetching users:', error); // Log error for debugging
         throw error;
     }
 };
@@ -56,7 +70,50 @@ const getUserById = async (userId) => {
     const transaction = await db.sequelize.transaction();
     try {
         // Begin the transaction
-        const user = await db.User.findByPk(userId, { transaction });
+        const user = await db.User.findByPk(userId, {
+            include: [
+            {
+                model: db.Image,
+                as: 'profile_image',
+                where: {entry_type: 'user' },
+                required: false 
+            },
+            {
+                model:db.UserRole,
+                as:'user_role',
+                required:false
+            },
+            {
+                model: db.Investment,
+                as: 'investments',
+                required: false, 
+            },
+            {
+                model: db.InvestmentRequest,
+                as: 'investmentRequests',
+                required: false, 
+                include:[
+                    {
+                        model:db.InvestmentOffer,
+                        as:'investmentOffers',
+                        required:false
+                    }
+                ]
+                
+            },
+            {
+                model:db.InvestmentOffer,
+                as:'investmentOffers',
+                required:false
+            },
+            {
+                model: db.NewsBlog,
+                as: 'newsBlogs',
+                required: false 
+            },
+        ], transaction 
+        });
+        
         if (!user) {
             throw new Error('User not found');
         }
@@ -65,6 +122,57 @@ const getUserById = async (userId) => {
         await transaction.commit();
 
         return user;
+    } catch (error) {
+        // Rollback the transaction in case of an error
+        await transaction.rollback();
+        throw error;
+    }
+};
+
+// get user dashboard data 
+
+const getUserDashboardData = async (userId) => {
+    const transaction = await db.sequelize.transaction();
+    try {
+        // Begin the transaction
+        const user = await db.User.findByPk(userId, {
+            include: [
+            {
+                model: db.Image,
+                as: 'profile_image',
+                where: {entry_type: 'user' },
+                required: false 
+            },
+            {
+                model:db.UserRole,
+                as:'user_role',
+                required:false
+            }
+            
+        ], transaction 
+        });
+        
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        // Calculate the total investment amount by status
+        const investmentSummaries = await db.Investment.calculateInvestmentSummaryByStatus(userId);
+
+
+        // Calculate total offered amount by status for the investor
+        const investmentOfferSummaries = await db.InvestmentOffer.calculateTotalOfferedByStatus(userId);
+
+        // Calculate requested amount by status for the user
+        const InvestmentRequestSummaries = await db.InvestmentRequest.calculateRequestedAmountByStatus(userId);
+
+
+
+
+        // Commit the transaction
+        await transaction.commit();
+
+        return {user,investmentSummaries,investmentOfferSummaries,InvestmentRequestSummaries};
     } catch (error) {
         // Rollback the transaction in case of an error
         await transaction.rollback();
@@ -97,5 +205,6 @@ const deleteUser = async (userId) => {
 module.exports = {
     getAllUsers,
     getUserById,
-    deleteUser
+    deleteUser,
+    getUserDashboardData
 };

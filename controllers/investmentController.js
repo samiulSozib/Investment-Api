@@ -71,18 +71,18 @@ const deleteInvestment = async (req, res) => {
 
 // Get all investments
 const getInvestments = async (req, res) => {
-    const page=parseInt(req.query.page)||1
-    const item_per_page=parseInt(req.query.item_per_page)||10
+    const page=parseInt(req.query.page)||null
+    const item_per_page=parseInt(req.query.item_per_page)||null
     try {
         const investments = await investmentService.getInvestments(page,item_per_page);
-        const total_pages = Math.ceil(investments.count / item_per_page);
+        const total_pages =item_per_page? Math.ceil(investments.count / item_per_page):1;
         return res.status(200).json({
             status: true,
             data: investments.rows,
             payload:{
                 pagination:{
-                    current_page:page,
-                    per_page:item_per_page,
+                    current_page:page||1,
+                    per_page:item_per_page||investments.count,
                     total_items:investments.count,
                     total_pages:total_pages
                 }
@@ -99,18 +99,18 @@ const getInvestments = async (req, res) => {
 // Get investments by User ID
 const getInvestmentsByUserId = async (req, res) => {
     const user_id = req.params.user_id;
-    const page=parseInt(req.query.page)||1
-    const item_per_page=parseInt(req.query.item_per_page)||10
+    const page=parseInt(req.query.page)||null
+    const item_per_page=parseInt(req.query.item_per_page)||null
     try {
         const investments = await investmentService.getInvestmentsByUserId(user_id,page,item_per_page);
-        const total_pages = Math.ceil(investments.count / item_per_page);
+        const total_pages =item_per_page? Math.ceil(investments.count / item_per_page):1;
         return res.status(200).json({
             status: true,
             data: investments.rows,
             payload:{
                 pagination:{
-                    current_page:page,
-                    per_page:item_per_page,
+                    current_page:page||1,
+                    per_page:item_per_page||investments.count,
                     total_items:investments.count,
                     total_pages:total_pages
                 }

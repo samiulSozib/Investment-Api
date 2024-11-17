@@ -19,6 +19,20 @@ const createInvestmentOffer = async ({ request_id, investor_id, offered_amount, 
             throw new Error('Investor not found');
         }
 
+        // Check if user has the 'Investor' role
+        const userRole = await db.UserRole.findOne({
+            where: { user_id:investor_id, role: 'investor' },
+            transaction
+        });
+
+        // If user is not an Investor, add them to the 'user_roles' table
+        if (!userRole) {
+            await db.UserRole.create({
+                user_id:investor_id,
+                role: 'investor'
+            }, { transaction });
+        }
+
         // Create the investment offer
         const newOffer = await db.InvestmentOffer.create({
             request_id,
@@ -83,46 +97,73 @@ const deleteInvestmentOffer = async (offer_id) => {
 };
 
 // Get all investment offers
-const getInvestmentOffers = async (page,item_per_page) => {
-    const offset=(page-1)*item_per_page
+const getInvestmentOffers = async (page, item_per_page) => {
     try {
-        const offers = await db.InvestmentOffer.findAndCountAll({
+        // Construct the base query options
+        const options = {
             include: [
                 { model: db.InvestmentRequest, as: 'investmentRequest' },
-                { model: db.User, as: 'investor' },
-            ],
-            limit:item_per_page,
-            offset:offset
-        });
+                {
+                    model: db.User,
+                    as: 'investor',
+                    include: [{ model: db.UserRole, as: 'user_role', required: false }]
+                }
+            ]
+        };
+
+        // If pagination is provided, add limit and offset
+        if (page && item_per_page) {
+            const offset = (Math.max(page, 1) - 1) * item_per_page;
+            options.limit = item_per_page;
+            options.offset = offset;
+        }
+
+        const offers = await db.InvestmentOffer.findAndCountAll(options);
         return offers;
     } catch (error) {
+        console.error('Error fetching investment offers:', error); // Log error for debugging
         throw error;
     }
 };
 
+
 // Get investment offers by Request ID
-const getInvestmentOffersByRequestId = async (request_id,page,item_per_page) => {
-    const offset=(page-1)*item_per_page
+const getInvestmentOffersByRequestId = async (request_id, page, item_per_page) => {
     try {
-        const offers = await db.InvestmentOffer.findAndCountAll({
+        // Construct the base query options
+        const options = {
             where: { request_id },
             include: [
                 { model: db.InvestmentRequest, as: 'investmentRequest' },
-                { model: db.User, as: 'investor' },
-            ],
-            limit:item_per_page,
-            offset:offset
-        });
+                {
+                    model: db.User,
+                    as: 'investor',
+                    include: [{ model: db.UserRole, as: 'user_role', required: false }]
+                }
+            ]
+        };
 
-        if (offers.length === 0) {
+        // If pagination is provided, add limit and offset
+        if (page && item_per_page) {
+            const offset = (Math.max(page, 1) - 1) * item_per_page;
+            options.limit = item_per_page;
+            options.offset = offset;
+        }
+
+        const offers = await db.InvestmentOffer.findAndCountAll(options);
+
+        // Check if any offers were found
+        if (offers.count === 0) {
             throw new Error('No investment offers found for this request');
         }
 
         return offers;
     } catch (error) {
+        console.error('Error fetching investment offers by request ID:', error); // Log error for debugging
         throw error;
     }
 };
+
 
 // Get investment offer by ID
 const getInvestmentOfferById = async (offer_id) => {
@@ -130,7 +171,7 @@ const getInvestmentOfferById = async (offer_id) => {
         const offer = await db.InvestmentOffer.findByPk(offer_id, {
             include: [
                 { model: db.InvestmentRequest, as: 'investmentRequest' },
-                { model: db.User, as: 'investor' },
+                { model: db.User, as: 'investor' ,include:[{model:db.UserRole,as:'user_role',required:false}]},
             ],
         });
 
@@ -165,6 +206,8 @@ const changeInvestmentOfferStatus = async (offer_id, newStatus) => {
         investmentOffer.status = newStatus;
         await investmentOffer.save({ transaction });
 
+       
+
         // Optionally, include associated models
         const updatedOffer = await db.InvestmentOffer.findByPk(offer_id, {
             include: [
@@ -177,6 +220,7 @@ const changeInvestmentOfferStatus = async (offer_id, newStatus) => {
         await transaction.commit();
         return updatedOffer;
     } catch (error) {
+        console.log(error)
         await transaction.rollback();
         throw error;
     }

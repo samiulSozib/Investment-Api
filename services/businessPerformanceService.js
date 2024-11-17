@@ -18,8 +18,19 @@ const createBusinessPerformance = async ({ business_id, date, profit, loss }) =>
             loss
         }, { transaction });
 
+        const newBusinessPerformance=await db.BusinessPerformance.findByPk(newRecord.id,{
+            include:[
+                {
+                    model:db.Business,
+                    as:'business',
+                    required:false
+                }
+            ],transaction
+        })
+      
+
         await transaction.commit();
-        return newRecord;
+        return newBusinessPerformance;
     } catch (error) {
         await transaction.rollback();
         throw error;
@@ -44,7 +55,13 @@ const updateBusinessPerformance = async (id, { date, profit, loss }) => {
             transaction
         });
 
-        const updatedRecord = await db.BusinessPerformance.findByPk(id, { transaction });
+        const updatedRecord = await db.BusinessPerformance.findByPk(id, { include:[
+            {
+                model:db.Business,
+                as:'business',
+                required:false
+            }
+        ],transaction });
         await transaction.commit();
         return updatedRecord;
     } catch (error) {
@@ -76,16 +93,27 @@ const deleteBusinessPerformance = async (id) => {
 };
 
 // Get all business performance records
-const getAllBusinessPerformances = async (page,item_per_page) => {
-    const offset=(page-1)*item_per_page
+const getAllBusinessPerformances = async (page, item_per_page) => {
     try {
-        return await db.BusinessPerformance.findAndCountAll({
-            include: [{ model: db.Business, as: 'business' }],limit:item_per_page,offset:offset
-        });
+        // Construct the base query options
+        const options = {
+            include: [{ model: db.Business, as: 'business' }]
+        };
+
+        // If pagination is provided, add limit and offset
+        if (page && item_per_page) {
+            const offset = (Math.max(page, 1) - 1) * item_per_page;
+            options.limit = item_per_page;
+            options.offset = offset;
+        }
+
+        return await db.BusinessPerformance.findAndCountAll(options);
     } catch (error) {
+        console.error('Error fetching business performances:', error); // Log error for debugging
         throw error;
     }
 };
+
 
 // Get business performance by ID
 const getBusinessPerformanceById = async (id) => {

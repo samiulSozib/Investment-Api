@@ -70,18 +70,18 @@ exports.deleteInvestmentOffer = async (req, res) => {
 
 // Get all investment offers
 exports.getInvestmentOffers = async (req, res) => {
-    const page=parseInt(req.query.page)||1
-    const item_per_page=parseInt(req.query.item_per_page)||10
+    const page=parseInt(req.query.page)||null
+    const item_per_page=parseInt(req.query.item_per_page)||null
     try {
         const offers = await investmentOfferService.getInvestmentOffers(page,item_per_page);
-        const total_pages = Math.ceil(offers.count / item_per_page);
+        const total_pages =item_per_page? Math.ceil(offers.count / item_per_page):1;
         return res.status(200).json({
             status: true,
             data: offers.rows,
             payload:{
                 pagination:{
-                    current_page:page,
-                    per_page:item_per_page,
+                    current_page:page||1,
+                    per_page:item_per_page||offers.count,
                     total_items:offers.count,
                     total_pages:total_pages
                 }
@@ -98,18 +98,18 @@ exports.getInvestmentOffers = async (req, res) => {
 // Get investment offers by Request ID
 exports.getInvestmentOffersByRequestId = async (req, res) => {
     const request_id = req.params.request_id;
-    const page=parseInt(req.query.page)||1
-    const item_per_page=parseInt(req.query.item_per_page)||10
+    const page=parseInt(req.query.page)||null
+    const item_per_page=parseInt(req.query.item_per_page)||null;
     try {
         const offers = await investmentOfferService.getInvestmentOffersByRequestId(request_id,page,item_per_page);
-        const total_pages = Math.ceil(offers.count / item_per_page);
+        const total_pages =item_per_page? Math.ceil(offers.count / item_per_page):1;
         return res.status(200).json({
             status: true,
             data: offers.rows,
             payload:{
                 pagination:{
-                    current_page:page,
-                    per_page:item_per_page,
+                    current_page:page||1,
+                    per_page:item_per_page||offers.count,
                     total_items:offers.count,
                     total_pages:total_pages
                 }

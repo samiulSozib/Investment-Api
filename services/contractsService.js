@@ -82,16 +82,27 @@ const deleteContract = async (contract_id) => {
 };
 
 // Get all contracts
-const getContracts = async (page,item_per_page) => {
-    const offset=(page-1)*item_per_page
+const getContracts = async (page, item_per_page) => {
     try {
-        return await db.Contract.findAndCountAll({
-            include: [{ model: db.Investment, as: 'investment' }],limit:item_per_page,offset:offset
-        });
+        // Construct the base query options
+        const options = {
+            include: [{ model: db.Investment, as: 'investment' }]
+        };
+
+        // If pagination is provided, add limit and offset
+        if (page && item_per_page) {
+            const offset = (Math.max(page, 1) - 1) * item_per_page;
+            options.limit = item_per_page;
+            options.offset = offset;
+        }
+
+        return await db.Contract.findAndCountAll(options);
     } catch (error) {
+        console.error('Error fetching contracts:', error); // Log error for debugging
         throw error;
     }
 };
+
 
 // Get contract by ID
 const getContractById = async (contract_id) => {

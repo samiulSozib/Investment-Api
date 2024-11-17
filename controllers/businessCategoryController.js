@@ -61,11 +61,22 @@ const deleteCategory = async (req, res) => {
 
 // Get all categories
 const getCategories = async (req, res) => {
+    const page=parseInt(req.query.page)||null
+    const item_per_page=parseInt(req.query.item_per_page)||null
     try {
-        const categories = await categoryService.getCategories();
+        const categories = await categoryService.getCategories(page,item_per_page);
+        const total_pages =item_per_page? Math.ceil(categories.count / item_per_page):1;
         return res.status(200).json({
             status: true,
-            data: categories,
+            data: categories.rows,
+            payload:{
+                pagination:{
+                    current_page:page||1,
+                    per_page:item_per_page||categories.count,
+                    total_items:categories.count,
+                    total_pages:total_pages
+                }
+            }
         });
     } catch (error) {
         return res.status(500).json({

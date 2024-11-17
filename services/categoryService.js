@@ -89,11 +89,21 @@ const deleteCategory = async (category_id) => {
 };
 
 // Get all categories
-const getCategories = async () => {
+const getCategories = async (page,item_per_page) => {
     try {
-        const categories = await db.BusinessCategory.findAll();
+        const options = {
+            
+        };
+        if (page && item_per_page) {
+            const offset = (Math.max(page, 1) - 1) * item_per_page;
+            options.limit = item_per_page;
+            options.offset = offset;
+        }
+
+        const categories = await db.BusinessCategory.findAndCountAll(options);
         return categories;
     } catch (error) {
+        console.log(error)
         throw error;
     }
 };

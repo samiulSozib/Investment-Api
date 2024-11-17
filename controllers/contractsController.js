@@ -72,19 +72,19 @@ exports.deleteContract = async (req, res) => {
 
 // Get all contracts
 exports.getContracts = async (req, res) => {
-    const page=parseInt(req.query.page)||1
-    const item_per_page=parseInt(req.query.item_per_page)||10
+    const page=parseInt(req.query.page)||null
+    const item_per_page=parseInt(req.query.item_per_page)||null
     try {
         const contracts = await contractService.getContracts(page,item_per_page);
         
-        const total_pages = Math.ceil(contracts.count / item_per_page);
+        const total_pages =item_per_page? Math.ceil(contracts.count / item_per_page):1;
         return res.status(200).json({
             status: true,
             data: contracts.rows,
             payload:{
                 pagination:{
-                    current_page:page,
-                    per_page:item_per_page,
+                    current_page:page||1,
+                    per_page:item_per_page||contracts.count,
                     total_items:contracts.count,
                     total_pages:total_pages
                 }

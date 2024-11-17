@@ -78,18 +78,18 @@ const deleteInvestmentRequest = async (req, res) => {
 
 // Get all investment requests
 const getInvestmentRequests = async (req, res) => {
-    const page=parseInt(req.query.page)||1
-    const item_per_page=parseInt(req.query.item_per_page)||10
+    const page=parseInt(req.query.page)||null
+    const item_per_page=parseInt(req.query.item_per_page)||null
     try {
         const requests = await investmentRequestService.getInvestmentRequests(page,item_per_page);
-        const total_pages = Math.ceil(requests.count / item_per_page);
+        const total_pages =item_per_page? Math.ceil(requests.count / item_per_page):1;
         return res.status(200).json({
             status: true,
             data: requests.rows,
             payload:{
                 pagination:{
-                    current_page:page,
-                    per_page:item_per_page,
+                    current_page:page||1,
+                    per_page:item_per_page||requests.count,
                     total_items:requests.count,
                     total_pages:total_pages
                 }
@@ -106,18 +106,18 @@ const getInvestmentRequests = async (req, res) => {
 // Get investment requests by User ID
 const getInvestmentRequestsByUserId = async (req, res) => {
     const user_id = req.params.user_id;
-    const page=parseInt(req.query.page)||1
-    const item_per_page=parseInt(req.query.item_per_page)||10
+    const page=parseInt(req.query.page)||null
+    const item_per_page=parseInt(req.query.item_per_page)||null
     try {
         const requests = await investmentRequestService.getInvestmentRequestsByUserId(user_id,page,item_per_page);
-        const total_pages = Math.ceil(requests.count / item_per_page);
+        const total_pages =item_per_page? Math.ceil(requests.count / item_per_page):1;
         return res.status(200).json({
             status: true,
             data: requests.rows,
             payload:{
                 pagination:{
-                    current_page:page,
-                    per_page:item_per_page,
+                    current_page:page||1,
+                    per_page:item_per_page||requests.count,
                     total_items:requests.count,
                     total_pages:total_pages
                 }

@@ -3,11 +3,11 @@ const jwt = require('jsonwebtoken');
 const db=require('../database/db')
 const {generateOtp,isOtpExpired}=require('../util/otpFuntions')
 const {sendEmail}=require('../services/emailService')
-const {Op}=require('sequelize')
+const {Op, where}=require('sequelize')
 
 
 // register user
-const registerUser = async ({ name, email, password, role }) => {
+const registerUser = async ({ name, email, password }) => {
     const transaction = await db.sequelize.transaction();
 
     try {
@@ -29,7 +29,6 @@ const registerUser = async ({ name, email, password, role }) => {
             await db.User.update({
                 name,
                 password: hashedPassword,
-                role,
                 is_verified: 0 // Ensure the user is marked as not verified
             }, {
                 where: { email },
@@ -81,7 +80,6 @@ const registerUser = async ({ name, email, password, role }) => {
             name,
             email,
             password: hashedPassword,
-            role,
             is_verified: 0 // Ensure the user is marked as not verified
         }, { transaction });
 
@@ -126,7 +124,7 @@ const loginUser = async ({ email, password }) => {
     const transaction = await db.sequelize.transaction();
 
     try {
-        const user = await db.User.findOne({ where: { email }, transaction });
+        const user = await db.User.findOne({ where: { email },include:[{model:db.UserRole,as:'user_role',required:false}], transaction });
         if (!user) {
             throw new Error('Invalid email or password');
         }
@@ -137,9 +135,9 @@ const loginUser = async ({ email, password }) => {
         }
 
         const token = jwt.sign(
-            { id: user.id, role: user.role },
+            { id: user.id,email:user.email},
             process.env.JWT_SECRET,
-            { expiresIn: '1h' }
+            { expiresIn: '7d' }
         );
 
         await transaction.commit(); 
@@ -153,7 +151,7 @@ const loginUser = async ({ email, password }) => {
 
 // verify user
 const verifyUser = async ({ user_id, otp }) => {
-    const transaction = await sequelize.transaction();
+    const transaction = await db.sequelize.transaction();
 
     try {
         const otpRecord = await db.OTP.findOne({
@@ -176,12 +174,18 @@ const verifyUser = async ({ user_id, otp }) => {
         );
 
         const user_data = await db.User.findByPk(user_id, {
-            include: [{ model: db.country }],
+            include:[
+                {
+                    model:db.UserRole,
+                    as:'user_role',
+                    required:false
+                }
+            ],
             transaction,
         });
 
         const token = jwt.sign({ user_id: user_data.id }, process.env.JWT_SECRET, {
-            expiresIn: '1h',
+            expiresIn: '7d',
         });
 
         await transaction.commit();
@@ -195,7 +199,7 @@ const verifyUser = async ({ user_id, otp }) => {
 
 // resend otp
 const resendOTP = async ({ user_id }) => {
-    const transaction = await sequelize.transaction();
+    const transaction = await db.sequelize.transaction();
 
     try {
         const now = new Date();
@@ -219,7 +223,13 @@ const resendOTP = async ({ user_id }) => {
 
         // Fetch user data
         const user_data = await db.User.findByPk(user_id, {
-            include: [{ model: db.country }],
+            include:[
+                {
+                    model:db.UserRole,
+                    as:'user_data',
+                    required:false
+                }
+            ],
             transaction,
         });
 
@@ -246,13 +256,76 @@ const resendOTP = async ({ user_id }) => {
     }
 };
 
-const verifyUserForForgotPassword = async ({ user_id, otp }) => {
-    const transaction = await sequelize.transaction();
+// resend otp
+const sendOTPForForgetPassword = async ({ email }) => {
+    const transaction = await db.sequelize.transaction();
 
     try {
+        const user=await db.User.findOne({where:{email:email}})
+        if(!email) throw new Error("User Not Found, Invalid Email")
+        const now = new Date();
+        const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000); // 24 hours ago
+
+        // Count OTPs sent in the last 24 hours
+        const otpCountToday = await db.OTP.count({
+            where: {
+                user_id: user.id,
+                createdAt: {
+                    [Op.gt]: twentyFourHoursAgo,
+                },
+            },
+            transaction,
+        });
+
+        // Check if the user has exceeded the OTP request limit
+        if (otpCountToday >= 5) {
+            throw new Error('OTP request limit reached for today');
+        }
+
+        // Fetch user data
+        // const user_data = await db.User.findByPk(user.id, {
+        //     include:[
+        //         {
+        //             model:db.UserRole,
+        //             as:'user_data',
+        //             required:false
+        //         }
+        //     ],
+        //     transaction,
+        // });
+        // if (!user_data) {
+        //     throw new Error('User not found');
+        // }
+
+        // Generate new OTP and save it to the database
+        const created_otp = generateOtp();
+        await db.OTP.create({
+            user_id: user.id,
+            otp: created_otp,
+            daily_otp_count: otpCountToday + 1,
+        }, { transaction });
+
+        // Send OTP via email
+        await sendEmail(email, 'Verify Email', `Your OTP is ${created_otp}`);
+
+        await transaction.commit();
+        return user;
+    } catch (error) {
+        console.log(error)
+        await transaction.rollback();
+        throw error;
+    }
+};
+
+const verifyUserForForgotPassword = async ({ email, otp }) => {
+    const transaction = await db.sequelize.transaction();
+
+    try {
+        const user=await db.User.findOne({where:{email:email}})
+        if(!user) throw new Error('User not found, Invalid Email')
         // Find the latest OTP record for the user
         const otpRecord = await db.OTP.findOne({
-            where: { user_id: user_id, otp },
+            where: { user_id: user.id, otp },
             order: [['createdAt', 'DESC']],
             transaction,
         });
@@ -268,8 +341,14 @@ const verifyUserForForgotPassword = async ({ user_id, otp }) => {
         }
 
         // Fetch user data
-        const user_data = await db.User.findByPk(user_id, {
-            include: [{ model: db.country }],
+        const user_data = await db.User.findByPk(user.id, {
+            include:[
+                {
+                    model:db.UserRole,
+                    as:'user_role',
+                    required:false
+                }
+            ],
             transaction,
         });
 
@@ -301,9 +380,7 @@ const updateUserProfile = async (userId, updatedData,imageFile) => {
         if (updatedData.phone_number) {
             user.phone_number = updatedData.phone_number;
         }
-        if (updatedData.role && ['entrepreneur', 'investor'].includes(updatedData.role)) {
-            user.role = updatedData.role;
-        }
+        
 
       
         await user.save({ transaction: transaction });
@@ -335,12 +412,20 @@ const updateUserProfile = async (userId, updatedData,imageFile) => {
         }
 
         const updatedUser = await db.User.findByPk(userId, {
-            include: [{
-                model: db.Image,
-                as: 'profile_image',
-                where: {foreign_key_id:userId, entry_type: 'user' },
-                required: false 
-            }]
+            include: 
+            [
+                {
+                    model: db.Image,
+                    as: 'profile_image',
+                    where: {foreign_key_id:userId, entry_type: 'user' },
+                    required: false 
+                },
+                {
+                    model:db.UserRole,
+                    as:'user_role',
+                    required:false
+                }
+            ]
         });
         
 
@@ -352,11 +437,52 @@ const updateUserProfile = async (userId, updatedData,imageFile) => {
     }
 };
 
+const changePassword=async(user_id,old_password,new_password)=>{
+    try {
+        const user = await db.User.findByPk(user_id);
+        if (!user) throw new Error('User not found');
+
+        // Verify old password
+        const isMatch = await bcrypt.compare(old_password, user.password);
+        if (!isMatch) throw new Error('Incorrect old password');
+
+        // Hash new password and save
+        const hashedPassword = await bcrypt.hash(new_password, 10);
+        user.password = hashedPassword;
+        await user.save();
+        const updatedUser=await db.User.findByPk(user_id)
+        return updatedUser;
+    } catch (error) {
+        throw new Error(error.message);
+    }
+}
+
+const setNewPasswordPassword=async(user_id,new_password)=>{
+    try {
+        const user = await db.User.findByPk(user_id);
+        if (!user) throw new Error('User not found');
+
+        // Hash new password and save
+        const hashedPassword = await bcrypt.hash(new_password, 10);
+        user.password = hashedPassword;
+        await user.save();
+        const updatedUser=await db.User.findByPk(user_id)
+        return updatedUser;
+    } catch (error) {
+        throw new Error(error.message);
+    }
+}
+
+
+
 module.exports = {
     registerUser,
     loginUser,
     verifyUser,
     resendOTP,
+    sendOTPForForgetPassword,
     verifyUserForForgotPassword,
-    updateUserProfile
+    updateUserProfile,
+    changePassword,
+    setNewPasswordPassword
 };

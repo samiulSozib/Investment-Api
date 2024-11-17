@@ -13,8 +13,14 @@ router.post('/sign-in', validateLogin, validate, authController.login);
 // verify user 
 router.post('/verify',authController.verifyUser)
 
+
+// send otp for forget password
+router.post('/send-otp-for-forget-password', authController.sendOTPForForgetPassword);
+
+
 // resend otp
 router.post('/resend-otp', authController.resendOTP);
+
 
 
 // ver user for forget password
@@ -23,5 +29,11 @@ router.post('/verify-forgot-password', authController.verifyUserForForgotPasswor
 
 // Update user 
 router.put('/update-user/:id',upload.single('profile_image'),authController.updateProfile)
+
+// change password 
+router.post('/change-password',authController.changePassword)
+
+// set new  password 
+router.post('/set-new-password',authController.setNewPassword)
 
 module.exports = router;

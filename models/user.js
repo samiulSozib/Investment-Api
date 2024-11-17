@@ -12,10 +12,6 @@ module.exports = (sequelize, DataTypes) => {
         phone_number: {
             type: DataTypes.CHAR(15)
         },
-        role: {
-            type: DataTypes.ENUM('admin', 'entrepreneur', 'investor'), 
-            allowNull: false
-        },
         is_verified:{
             type:DataTypes.BOOLEAN,
             defaultValue:false

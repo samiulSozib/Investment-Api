@@ -28,14 +28,26 @@ const createNewsBlog = async ({ title, content, author_id,files }) => {
         }
 
         const createdBlog = await db.NewsBlog.findByPk(newBlog.id, {
-            include: [{
+            include: [
+                {
+                   model:db.User,
+                   as:"author",
+                   required:false ,
+                   include:[{model:db.UserRole,as:'user_role',required:false}]
+                },
+                {
                 model: db.Image,
                 as: 'news_blogs_images',  // Use the same alias defined in the association
                 where: { entry_type: 'newsBlogs' },
                 required: false // Left join to include images only if they exist
-            }],
+                }
+        ],
             transaction
         });
+
+        
+
+
         
         await transaction.commit();
         return createdBlog;
@@ -97,12 +109,20 @@ const updateNewsBlog = async (blogId, { title, content, files, existing_images }
 
         // Fetch the updated blog with images
         const updatedBlog = await db.NewsBlog.findByPk(blogId, {
-            include: [{
+            include: [
+                {
+                    model:db.User,
+                    as:'author',
+                    required:false,
+                    include:[{model:db.UserRole,as:'user_role',required:false}]
+                },
+                {
                 model: db.Image,
                 as: 'news_blogs_images',
                 where: { entry_type: 'newsBlogs' },
                 required: false
-            }],
+                }
+            ],
             transaction
         });
 
@@ -144,7 +164,7 @@ const getAllNewsBlogs = async (page,item_per_page) => {
     try {
         return await db.NewsBlog.findAndCountAll({
             include: [
-                { model: db.User, as: 'author' },
+                { model: db.User, as: 'author' ,include:[{model:db.UserRole,as:'user_role',required:false}]},
                 {
                     model: db.Image,
                     as: 'news_blogs_images',  // Use the same alias defined in the association
